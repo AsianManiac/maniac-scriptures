@@ -1,33 +1,67 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useTheme } from "@/hooks/use-theme";
+import { Tabs } from "expo-router";
+import { BookOpen, FileText, Heart, Home, Star } from "lucide-react-native";
+import React from "react";
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textLight,
         headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
+        tabBarStyle: {
+          backgroundColor: colors.cardBackground,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600" as const,
+        },
+      }}
+    >
       <Tabs.Screen
-        name="index"
+        name="(home)"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "Home",
+          tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="(bible)"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: "Bible",
+          tabBarIcon: ({ color, size }) => (
+            <BookOpen color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="(devotionals)"
+        options={{
+          title: "Devotionals",
+          tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="(notes)"
+        options={{
+          title: "Notes",
+          tabBarIcon: ({ color, size }) => (
+            <FileText color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="(favorites)"
+        options={{
+          title: "Favorites",
+          tabBarIcon: ({ color, size }) => (
+            <Star color={color} size={size} fill={color} />
+          ),
         }}
       />
     </Tabs>
