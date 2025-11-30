@@ -57,7 +57,7 @@ export default function FavoritesScreen() {
       favorite.reference.chapter,
       favorite.reference.verse
     );
-    router.push("/(tabs)/(bible)");
+    router.push("/(bible)");
   };
 
   const handleRemoveFavorite = (

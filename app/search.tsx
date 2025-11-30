@@ -98,7 +98,7 @@ export default function BibleSearchScreen() {
   const handleResultPress = (result: SearchResult) => {
     console.log("Result pressed:", result);
     navigateToVerse(result.book, result.chapter, result.verse);
-    router.push("/(tabs)/(bible)");
+    router.push("/(bible)");
   };
 
   const highlightSearchTerms = (text: string, query: string) => {

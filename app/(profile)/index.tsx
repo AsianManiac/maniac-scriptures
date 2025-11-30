@@ -1,7 +1,9 @@
 import { useTheme } from "@/hooks/use-theme";
 import { useBibleStore } from "@/stores/bible-store";
+import { getBibleVersions } from "@/utils/bible-api";
 import {
   Bell,
+  Book,
   ChevronRight,
   Database,
   Moon,
@@ -22,7 +24,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ProfileScreen() {
   const { colors } = useTheme();
-  const { settings, updateSettings } = useBibleStore();
+  const { settings, updateSettings, setDefaultVersion, preloadVersion } =
+    useBibleStore();
+  const bibleVersions = getBibleVersions();
 
   const handleThemeToggle = () => {
     updateSettings({
@@ -36,6 +40,12 @@ export default function ProfileScreen() {
       ...settings,
       notifications: !settings.notifications,
     });
+  };
+
+  const handleVersionSelect = async (versionId: string) => {
+    setDefaultVersion(versionId);
+    // Preload the new version for faster access
+    await preloadVersion(versionId);
   };
 
   return (
@@ -95,6 +105,34 @@ export default function ProfileScreen() {
                 {
                   backgroundColor: colors.cardBackground,
                   shadowColor: colors.shadow,
+                  marginBottom: 16,
+                },
+              ]}
+            >
+              <View style={styles.settingRow}>
+                <View style={styles.settingLeft}>
+                  <Book size={20} color={colors.primary} />
+                  <Text style={[styles.settingLabel, { color: colors.text }]}>
+                    Bible Version
+                  </Text>
+                </View>
+                <View style={styles.versionSelector}>
+                  <Text style={[styles.versionText, { color: colors.primary }]}>
+                    {bibleVersions.find(
+                      (v) => v.id === settings.defaultBibleVersion
+                    )?.abbreviation || "KJV"}
+                  </Text>
+                  <ChevronRight size={20} color={colors.textLight} />
+                </View>
+              </View>
+            </View>
+
+            <View
+              style={[
+                styles.settingCard,
+                {
+                  backgroundColor: colors.cardBackground,
+                  shadowColor: colors.shadow,
                 },
               ]}
             >
@@ -114,7 +152,7 @@ export default function ProfileScreen() {
                     onPress={() =>
                       updateSettings({
                         ...settings,
-                        fontSize: Math.max(12, settings.fontSize - 2),
+                        fontSize: Math.max(10, settings.fontSize - 1),
                       })
                     }
                   >
@@ -135,7 +173,7 @@ export default function ProfileScreen() {
                     onPress={() =>
                       updateSettings({
                         ...settings,
-                        fontSize: Math.min(24, settings.fontSize + 2),
+                        fontSize: Math.min(26, settings.fontSize + 1),
                       })
                     }
                   >
@@ -147,6 +185,87 @@ export default function ProfileScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text
+              style={[styles.sectionTitle, { color: colors.textSecondary }]}
+            >
+              Bible Versions
+            </Text>
+
+            <View
+              style={[
+                styles.settingCard,
+                {
+                  backgroundColor: colors.cardBackground,
+                  shadowColor: colors.shadow,
+                },
+              ]}
+            >
+              {bibleVersions.map((version, index) => (
+                <View key={version.id}>
+                  {index > 0 && (
+                    <View
+                      style={[
+                        styles.divider,
+                        { backgroundColor: colors.border },
+                      ]}
+                    />
+                  )}
+                  <TouchableOpacity
+                    style={styles.settingRow}
+                    onPress={() => handleVersionSelect(version.id)}
+                  >
+                    <View style={styles.settingLeft}>
+                      <View
+                        style={[
+                          styles.versionIndicator,
+                          {
+                            backgroundColor:
+                              settings.defaultBibleVersion === version.id
+                                ? colors.primary
+                                : colors.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.versionIndicatorText,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {version.abbreviation}
+                        </Text>
+                      </View>
+                      <View>
+                        <Text
+                          style={[styles.settingLabel, { color: colors.text }]}
+                        >
+                          {version.name}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.versionLanguage,
+                            { color: colors.textLight },
+                          ]}
+                        >
+                          {version.language}
+                        </Text>
+                      </View>
+                    </View>
+                    {settings.defaultBibleVersion === version.id && (
+                      <View
+                        style={[
+                          styles.selectedIndicator,
+                          { backgroundColor: colors.primary },
+                        ]}
+                      />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
           </View>
 
@@ -388,5 +507,34 @@ const styles = StyleSheet.create({
     fontWeight: "600" as const,
     minWidth: 32,
     textAlign: "center" as const,
+  },
+  versionSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  versionText: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+  },
+  versionIndicator: {
+    width: 40,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  versionIndicatorText: {
+    fontSize: 10,
+    fontWeight: "700" as const,
+  },
+  versionLanguage: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  selectedIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });

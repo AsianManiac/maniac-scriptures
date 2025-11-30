@@ -42,7 +42,7 @@ export default function HomeScreen() {
   const handleBookSelect = (book: Book) => {
     useBibleStore.getState().setCurrentBook(book.name);
     useBibleStore.getState().setCurrentChapter(1);
-    router.push("/(tabs)/(bible)");
+    router.push("/(bible)");
   };
 
   return (
@@ -143,7 +143,7 @@ export default function HomeScreen() {
                   shadowColor: colors.shadow,
                 },
               ]}
-              onPress={() => router.push("/(tabs)/(bible)")}
+              onPress={() => router.push("/(bible)")}
             >
               <BookOpen size={24} color={colors.primary} />
               <View style={styles.continueTextContainer}>

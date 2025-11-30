@@ -3,6 +3,8 @@ import { Book } from "@/types/bible";
 import { ChevronLeft, X } from "lucide-react-native";
 import { useState } from "react";
 import {
+  Animated,
+  Dimensions,
   Modal,
   ScrollView,
   StyleSheet,
@@ -17,6 +19,12 @@ interface ChapterVerseSelectorModalProps {
   book: Book;
   onSelectVerse: (chapter: number, verse: number) => void;
 }
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const NUM_COLUMNS = 5;
+const ITEM_MARGIN = 8;
+const ITEM_SIZE =
+  (SCREEN_WIDTH - 40 - ITEM_MARGIN * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
 export function ChapterVerseSelectorModal({
   visible,
@@ -52,6 +60,64 @@ export function ChapterVerseSelectorModal({
 
   const chapters = Array.from({ length: book.chapters }, (_, i) => i + 1);
 
+  const NumberItem = ({
+    number,
+    onPress,
+    index,
+  }: {
+    number: number;
+    onPress: () => void;
+    index: number;
+  }) => {
+    const scaleAnim = new Animated.Value(0.8);
+    const opacityAnim = new Animated.Value(0);
+
+    useState(() => {
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 50,
+          friction: 7,
+          useNativeDriver: true,
+          delay: index * 20,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+          delay: index * 20,
+        }),
+      ]).start();
+    });
+
+    return (
+      <Animated.View
+        style={{
+          opacity: opacityAnim,
+          transform: [{ scale: scaleAnim }],
+        }}
+      >
+        <TouchableOpacity
+          style={[
+            styles.numberCard,
+            {
+              backgroundColor: colors.primary,
+              shadowColor: colors.shadow,
+              width: ITEM_SIZE,
+              height: ITEM_SIZE,
+            },
+          ]}
+          onPress={onPress}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.numberText, { color: colors.cardBackground }]}>
+            {number}
+          </Text>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
   return (
     <Modal
       visible={visible}
@@ -74,78 +140,71 @@ export function ChapterVerseSelectorModal({
                   styles.backButton,
                   { backgroundColor: colors.background },
                 ]}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <ChevronLeft size={24} color={colors.text} />
               </TouchableOpacity>
             )}
-            <Text style={[styles.title, { color: colors.text }]}>
-              {selectedChapter ? `${book.name} ${selectedChapter}` : book.name}
-            </Text>
+
+            <View style={styles.titleContainer}>
+              <Text style={[styles.title, { color: colors.text }]}>
+                {book.name}
+              </Text>
+              {selectedChapter && (
+                <Text style={[styles.chapterTitle, { color: colors.primary }]}>
+                  Chapter {selectedChapter}
+                </Text>
+              )}
+            </View>
+
             <TouchableOpacity
               onPress={onClose}
               style={[
                 styles.closeButton,
                 { backgroundColor: colors.background },
               ]}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <X size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            {selectedChapter ? "Select Verse" : "Select Chapter"}
-          </Text>
+          <View style={styles.subtitleContainer}>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              {selectedChapter
+                ? `Select a verse from ${book.name} ${selectedChapter}`
+                : `Select a chapter from ${book.name}`}
+            </Text>
+            <Text style={[styles.countText, { color: colors.textLight }]}>
+              {selectedChapter
+                ? `${verseCount} verses`
+                : `${book.chapters} chapters`}
+            </Text>
+          </View>
 
           <ScrollView
             style={styles.numbersList}
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
           >
             <View style={styles.numbersGrid}>
               {!selectedChapter
-                ? chapters.map((chapter) => (
-                    <TouchableOpacity
+                ? chapters.map((chapter, index) => (
+                    <NumberItem
                       key={chapter}
-                      style={[
-                        styles.numberCard,
-                        {
-                          backgroundColor: colors.primary,
-                          shadowColor: colors.shadow,
-                        },
-                      ]}
+                      number={chapter}
+                      index={index}
                       onPress={() => handleChapterSelect(chapter)}
-                    >
-                      <Text
-                        style={[
-                          styles.numberText,
-                          { color: colors.cardBackground },
-                        ]}
-                      >
-                        {chapter}
-                      </Text>
-                    </TouchableOpacity>
+                    />
                   ))
                 : Array.from({ length: verseCount }, (_, i) => i + 1).map(
-                    (verse) => (
-                      <TouchableOpacity
+                    (verse, index) => (
+                      <NumberItem
                         key={verse}
-                        style={[
-                          styles.numberCard,
-                          {
-                            backgroundColor: colors.primary,
-                            shadowColor: colors.shadow,
-                          },
-                        ]}
+                        number={verse}
+                        index={index}
                         onPress={() => handleVerseSelect(verse)}
-                      >
-                        <Text
-                          style={[
-                            styles.numberText,
-                            { color: colors.cardBackground },
-                          ]}
-                        >
-                          {verse}
-                        </Text>
-                      </TouchableOpacity>
+                      />
                     )
                   )}
             </View>
@@ -165,7 +224,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    height: "75%",
+    height: "85%",
     paddingTop: 20,
   },
   header: {
@@ -176,11 +235,19 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     borderBottomWidth: 1,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "700" as const,
+  titleContainer: {
     flex: 1,
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "700" as const,
     textAlign: "center" as const,
+  },
+  chapterTitle: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    marginTop: 4,
   },
   closeButton: {
     width: 40,
@@ -196,36 +263,45 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  subtitle: {
-    fontSize: 14,
-    fontWeight: "600" as const,
+  subtitleContainer: {
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
   },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: "600" as const,
+    textAlign: "center" as const,
+    marginBottom: 4,
+  },
+  countText: {
+    fontSize: 14,
+    textAlign: "center" as const,
+  },
   numbersList: {
     flex: 1,
-    paddingHorizontal: 20,
+  },
+  scrollContent: {
+    paddingBottom: 30,
   },
   numbersGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 12,
-    paddingBottom: 20,
+    justifyContent: "flex-start",
+    paddingHorizontal: 20,
+    gap: ITEM_MARGIN,
   },
   numberCard: {
-    width: "18%",
-    aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   numberText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "700" as const,
   },
 });

@@ -65,7 +65,7 @@ export default function DevotionalDetailsScreen() {
         selectedVerse.chapter,
         selectedVerse.verse
       );
-      router.push("/(tabs)/(bible)");
+      router.push("/(bible)");
     }
   };
 

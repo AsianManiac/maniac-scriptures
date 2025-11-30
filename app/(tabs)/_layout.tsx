@@ -1,6 +1,6 @@
 import { useTheme } from "@/hooks/use-theme";
 import { Tabs } from "expo-router";
-import { BookOpen, FileText, Heart, Home, Star } from "lucide-react-native";
+import { FileText, Heart, Home, Star } from "lucide-react-native";
 import React from "react";
 
 export default function TabLayout() {
@@ -28,15 +28,6 @@ export default function TabLayout() {
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => <Home color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="(bible)"
-        options={{
-          title: "Bible",
-          tabBarIcon: ({ color, size }) => (
-            <BookOpen color={color} size={size} />
-          ),
         }}
       />
       <Tabs.Screen

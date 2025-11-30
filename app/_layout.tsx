@@ -32,9 +32,10 @@ function RootLayoutNav() {
           options={{ presentation: "modal", title: "Modal" }}
         />
         <Stack.Screen name="search" options={{ headerShown: false }} />
+        <Stack.Screen name="(bible)" options={{ headerShown: false }} />
         <Stack.Screen name="(profile)" options={{ headerShown: false }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }

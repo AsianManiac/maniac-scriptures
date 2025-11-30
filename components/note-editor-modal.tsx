@@ -1,4 +1,4 @@
-import Colors from "@/constants/colors";
+import { useTheme } from "@/hooks/use-theme";
 import { Note, VerseReference } from "@/types/bible";
 import { Save, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -31,6 +31,8 @@ export function NoteEditorModal({
   const [title, setTitle] = useState<string>("");
   const [content, setContent] = useState<string>("");
   const [tags, setTags] = useState<string>("");
+
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (existingNote) {
@@ -78,25 +80,48 @@ export function NoteEditorModal({
       onRequestClose={handleClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <View style={styles.header}>
-            <Text style={styles.title}>
+        <View
+          style={[
+            styles.modalContainer,
+            { backgroundColor: colors.cardBackground },
+          ]}
+        >
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.title, { color: colors.text }]}>
               {existingNote ? "Edit Note" : "New Note"}
             </Text>
             <View style={styles.headerButtons}>
               <TouchableOpacity
                 onPress={handleClose}
-                style={styles.closeButton}
+                style={[
+                  styles.closeButton,
+                  { backgroundColor: colors.background },
+                ]}
               >
-                <X size={24} color={Colors.light.text} />
+                <X size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
           </View>
 
           {verseReference && (
-            <View style={styles.verseReferenceCard}>
-              <Text style={styles.verseReferenceLabel}>Verse Reference</Text>
-              <Text style={styles.verseReferenceText}>
+            <View
+              style={[
+                styles.verseReferenceCard,
+                {
+                  backgroundColor: colors.primaryLight,
+                  borderLeftColor: colors.primary,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.verseReferenceLabel,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                Verse Reference
+              </Text>
+              <Text style={[styles.verseReferenceText, { color: colors.text }]}>
                 {verseReference.book} {verseReference.chapter}:
                 {verseReference.verse}
               </Text>
@@ -108,11 +133,18 @@ export function NoteEditorModal({
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Title</Text>
+              <Text style={[styles.label, { color: colors.text }]}>Title</Text>
               <TextInput
-                style={styles.titleInput}
+                style={[
+                  styles.titleInput,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
                 placeholder="Enter note title..."
-                placeholderTextColor={Colors.light.textLight}
+                placeholderTextColor={colors.textLight}
                 value={title}
                 onChangeText={setTitle}
                 maxLength={100}
@@ -122,9 +154,16 @@ export function NoteEditorModal({
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Content</Text>
               <TextInput
-                style={styles.contentInput}
+                style={[
+                  styles.contentInput,
+                  {
+                    backgroundColor: colors.background,
+                    color: colors.text,
+                    borderColor: colors.border,
+                  },
+                ]}
                 placeholder="Write your notes here..."
-                placeholderTextColor={Colors.light.textLight}
+                placeholderTextColor={colors.textLight}
                 value={content}
                 onChangeText={setContent}
                 multiline
@@ -138,16 +177,26 @@ export function NoteEditorModal({
               <TextInput
                 style={styles.titleInput}
                 placeholder="prayer, faith, hope..."
-                placeholderTextColor={Colors.light.textLight}
+                placeholderTextColor={colors.textLight}
                 value={tags}
                 onChangeText={setTags}
               />
             </View>
           </ScrollView>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Save size={20} color={Colors.light.cardBackground} />
-            <Text style={styles.saveButtonText}>Save Note</Text>
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              { backgroundColor: colors.primary, shadowColor: colors.shadow },
+            ]}
+            onPress={handleSave}
+          >
+            <Save size={20} color={colors.cardBackground} />
+            <Text
+              style={[styles.saveButtonText, { color: colors.cardBackground }]}
+            >
+              Save Note
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -162,7 +211,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: Colors.light.cardBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "90%",
@@ -176,12 +224,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
   },
   title: {
     fontSize: 24,
     fontWeight: "700" as const,
-    color: Colors.light.text,
   },
   headerButtons: {
     flexDirection: "row",
@@ -191,7 +237,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.light.background,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -199,15 +244,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginTop: 16,
     padding: 12,
-    backgroundColor: Colors.light.primaryLight,
     borderRadius: 12,
     borderLeftWidth: 4,
-    borderLeftColor: Colors.light.primary,
   },
   verseReferenceLabel: {
     fontSize: 11,
     fontWeight: "600" as const,
-    color: Colors.light.textSecondary,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
     marginBottom: 4,
@@ -215,7 +257,6 @@ const styles = StyleSheet.create({
   verseReferenceText: {
     fontSize: 16,
     fontWeight: "700" as const,
-    color: Colors.light.text,
   },
   content: {
     flex: 1,
@@ -228,26 +269,19 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600" as const,
-    color: Colors.light.text,
     marginBottom: 8,
   },
   titleInput: {
-    backgroundColor: Colors.light.background,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: Colors.light.text,
     borderWidth: 1,
-    borderColor: Colors.light.border,
   },
   contentInput: {
-    backgroundColor: Colors.light.background,
     borderRadius: 12,
     padding: 16,
     fontSize: 16,
-    color: Colors.light.text,
     borderWidth: 1,
-    borderColor: Colors.light.border,
     minHeight: 200,
   },
   saveButton: {
@@ -255,12 +289,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: Colors.light.primary,
     marginHorizontal: 20,
     marginTop: 16,
     paddingVertical: 16,
     borderRadius: 16,
-    shadowColor: Colors.light.shadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -269,6 +301,5 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontSize: 16,
     fontWeight: "700" as const,
-    color: Colors.light.cardBackground,
   },
 });

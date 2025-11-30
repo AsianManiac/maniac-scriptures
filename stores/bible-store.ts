@@ -1,3 +1,4 @@
+import { bibleService } from "@/services/bible-service";
 import {
   Collection,
   Favorite,
@@ -23,6 +24,8 @@ interface BibleState {
   currentBook: string;
   currentChapter: number;
   targetVerse: number | null;
+  setDefaultVersion: (versionId: string) => void;
+  preloadVersion: (versionId: string) => Promise<void>;
   addHighlight: (highlight: Highlight) => void;
   removeHighlight: (id: string) => void;
   getHighlightForVerse: (ref: VerseReference) => Highlight | undefined;
@@ -50,6 +53,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   fontSize: 17,
   lineSpacing: 1.5,
   notifications: true,
+  defaultBibleVersion: "kjv", // Default to KJV
 };
 
 const secureStorage = {
@@ -100,6 +104,18 @@ export const useBibleStore = create<BibleState>()(
       currentBook: "John",
       currentChapter: 3,
       targetVerse: null,
+
+      setDefaultVersion: (versionId: string) => {
+        console.log("Setting default Bible version:", versionId);
+        set((state) => ({
+          settings: { ...state.settings, defaultBibleVersion: versionId },
+        }));
+      },
+
+      preloadVersion: async (versionId: string) => {
+        console.log("Preloading Bible version:", versionId);
+        await bibleService.preloadVersion(versionId);
+      },
 
       addHighlight: (highlight) => {
         console.log("Adding highlight:", highlight);

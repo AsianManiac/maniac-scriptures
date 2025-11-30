@@ -1,4 +1,5 @@
-import { Book, Verse } from "@/types/bible";
+import { BIBLE_VERSIONS, bibleService } from "@/services/bible-service";
+import { BibleVersion, Book, Verse } from "@/types/bible";
 
 const BIBLE_API_BASE = "https://bible-api.com";
 
@@ -97,53 +98,49 @@ export const BIBLE_BOOKS: Book[] = [
 
 const bibleCache: BibleBookData = {};
 
+/**
+ * Fetch a chapter from local Bible data
+ */
 export async function fetchChapter(
   bookId: string,
   bookName: string,
-  chapter: number
+  chapter: number,
+  version: string = "kjv"
 ): Promise<Verse[]> {
   try {
-    if (bibleCache[bookId]?.[chapter]) {
-      console.log(`Returning cached data for ${bookName} ${chapter}`);
-      return bibleCache[bookId][chapter].verses;
+    // Check cache first
+    const cacheKey = `${bookId}-${version}`;
+    if (bibleCache[cacheKey]?.[chapter]) {
+      console.log(
+        `Returning cached data for ${bookName} ${chapter} (${version})`
+      );
+      return bibleCache[cacheKey][chapter].verses;
     }
 
-    console.log(`Fetching ${bookName} ${chapter} from API...`);
-
-    const cleanBookName = bookName.replace(/\s/g, "");
-    const response = await fetch(
-      `${BIBLE_API_BASE}/${cleanBookName}+${chapter}?translation=kjv`
+    console.log(
+      `Fetching ${bookName} ${chapter} from local ${version} Bible...`
     );
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch chapter: ${response.statusText}`);
+    // Use the Bible service to get the chapter
+    const verses = await bibleService.getChapter(bookName, chapter, version);
+
+    // Cache the result
+    if (!bibleCache[cacheKey]) {
+      bibleCache[cacheKey] = {};
     }
 
-    const data = await response.json();
-
-    const verses: Verse[] = data.verses.map((verse: any) => ({
-      book: bookName,
-      chapter: verse.chapter,
-      verse: verse.verse,
-      text: verse.text,
-    }));
-
-    if (!bibleCache[bookId]) {
-      bibleCache[bookId] = {};
-    }
-
-    bibleCache[bookId][chapter] = {
+    bibleCache[cacheKey][chapter] = {
       chapter,
       verses,
     };
 
     console.log(
-      `Fetched and cached ${verses.length} verses for ${bookName} ${chapter}`
+      `Fetched ${verses.length} verses for ${bookName} ${chapter} (${version})`
     );
 
     return verses;
   } catch (error) {
-    console.error(`Error fetching ${bookName} ${chapter}:`, error);
+    console.error(`Error fetching ${bookName} ${chapter} (${version}):`, error);
     throw error;
   }
 }
@@ -162,4 +159,84 @@ export function getOldTestamentBooks(): Book[] {
 
 export function getNewTestamentBooks(): Book[] {
   return BIBLE_BOOKS.filter((b) => b.testament === "new");
+}
+
+/**
+ * Search verses in the Bible
+ */
+export async function searchVerses(
+  query: string,
+  version: string = "kjv",
+  options: {
+    caseSensitive?: boolean;
+    wholeWord?: boolean;
+    maxResults?: number;
+  } = {}
+): Promise<Verse[]> {
+  return bibleService.search(query, version, options);
+}
+
+/**
+ * Get a specific verse
+ */
+export async function getVerse(
+  bookName: string,
+  chapter: number,
+  verse: number,
+  version: string = "kjv"
+): Promise<Verse | null> {
+  return bibleService.getVerse(bookName, chapter, verse, version);
+}
+
+/**
+ * Get available Bible versions
+ */
+export function getBibleVersions(): BibleVersion[] {
+  return BIBLE_VERSIONS;
+}
+
+/**
+ * Get Bible version by ID
+ */
+export function getBibleVersion(versionId: string): BibleVersion | undefined {
+  return bibleService.getVersion(versionId);
+}
+
+/**
+ * Preload a Bible version for faster access
+ */
+export async function preloadBibleVersion(versionId: string): Promise<void> {
+  await bibleService.preloadVersion(versionId);
+}
+
+/**
+ * Clear Bible cache
+ */
+export function clearBibleCache(versionId?: string): void {
+  bibleService.clearCache(versionId);
+
+  if (versionId) {
+    // Clear specific version from API cache
+    Object.keys(bibleCache).forEach((key) => {
+      if (key.endsWith(`-${versionId}`)) {
+        delete bibleCache[key];
+      }
+    });
+  } else {
+    // Clear all API cache
+    Object.keys(bibleCache).forEach((key) => {
+      delete bibleCache[key];
+    });
+  }
+}
+
+/**
+ * Switch Bible version
+ */
+export async function switchBibleVersion(
+  bookName: string,
+  chapter: number,
+  newVersionId: string
+): Promise<Verse[]> {
+  return bibleService.switchVersion(bookName, chapter, newVersionId);
 }

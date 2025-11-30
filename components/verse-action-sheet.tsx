@@ -1,4 +1,4 @@
-import Colors from "@/constants/colors";
+import { useTheme } from "@/hooks/use-theme";
 import { useBibleStore } from "@/stores/bible-store";
 import { Note, VerseReference } from "@/types/bible";
 import * as Clipboard from "expo-clipboard";
@@ -48,6 +48,7 @@ export function VerseActionsSheet({
     addNote,
     updateNote,
   } = useBibleStore();
+  const { colors } = useTheme();
 
   const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
   const [showNoteEditor, setShowNoteEditor] = useState<boolean>(false);
@@ -57,11 +58,11 @@ export function VerseActionsSheet({
   const isVerseFavorite = checkIsFavorite(verse);
 
   const highlightColors = [
-    { name: "yellow", color: Colors.light.highlightYellow },
-    { name: "green", color: Colors.light.highlightGreen },
-    { name: "blue", color: Colors.light.highlightBlue },
-    { name: "pink", color: Colors.light.highlightPink },
-    { name: "orange", color: Colors.light.highlightOrange },
+    { name: "yellow", color: colors.highlightYellow },
+    { name: "green", color: colors.highlightGreen },
+    { name: "blue", color: colors.highlightBlue },
+    { name: "pink", color: colors.highlightPink },
+    { name: "orange", color: colors.highlightOrange },
   ];
 
   const handleHighlight = (colorName: string) => {
@@ -138,7 +139,20 @@ export function VerseActionsSheet({
     try {
       const shareText = `${verse.book} ${verse.chapter}:${verse.verse}\n\n${verseText}`;
 
-      if (Platform.OS === "web") {
+      if (Platform.OS === "ios" || Platform.OS === "android") {
+        // Use native sharing on mobile
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(shareText, {
+            dialogTitle: `Share ${verse.book} ${verse.chapter}:${verse.verse}`,
+            mimeType: "text/plain",
+          });
+        } else {
+          // Fallback to clipboard if sharing is not available
+          await Clipboard.setStringAsync(shareText);
+          Alert.alert("Copied!", "Verse copied to clipboard");
+        }
+      } else {
+        // Web platform - use navigator.share or fallback to clipboard
         if (navigator.share) {
           await navigator.share({
             title: `${verse.book} ${verse.chapter}:${verse.verse}`,
@@ -146,30 +160,17 @@ export function VerseActionsSheet({
           });
         } else {
           await Clipboard.setStringAsync(shareText);
-          Alert.alert(
-            "Copied!",
-            "Verse copied to clipboard (sharing not available on web)"
-          );
-        }
-      } else {
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          const tempText = shareText;
-          console.log("Sharing verse:", tempText);
-
-          Alert.alert(
-            "Share",
-            "Verse copied to clipboard. You can now paste it in any app!"
-          );
-          await Clipboard.setStringAsync(shareText);
-        } else {
-          await Clipboard.setStringAsync(shareText);
           Alert.alert("Copied!", "Verse copied to clipboard");
         }
       }
+
       onClose();
     } catch (error) {
       console.error("Error sharing verse:", error);
+      // Don't show error for user cancellation
+      if (error instanceof Error && !error.message.includes("cancelled")) {
+        Alert.alert("Error", "Failed to share verse");
+      }
     }
   };
 
@@ -182,33 +183,53 @@ export function VerseActionsSheet({
         onRequestClose={onClose}
       >
         <Pressable style={styles.overlay} onPress={onClose}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable
+            style={[styles.sheet, { backgroundColor: colors.cardBackground }]}
+            onPress={(e) => e.stopPropagation()}
+          >
             <View style={styles.header}>
-              <Text style={styles.verseRef}>
+              <Text style={[styles.verseRef, { color: colors.primary }]}>
                 {verse.book} {verse.chapter}:{verse.verse}
               </Text>
-              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <X size={24} color={Colors.light.text} />
+              <TouchableOpacity
+                onPress={onClose}
+                style={[
+                  styles.closeButton,
+                  { backgroundColor: colors.background },
+                ]}
+              >
+                <X size={24} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.verseTextDisplay}>{verseText}</Text>
+            <Text
+              style={[
+                styles.verseTextDisplay,
+                { color: colors.text, backgroundColor: colors.background },
+              ]}
+            >
+              {verseText}
+            </Text>
 
             <View style={styles.actions}>
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={() => setShowColorPicker(!showColorPicker)}
               >
-                <Highlighter size={24} color={Colors.light.primary} />
-                <Text style={styles.actionText}>Highlight</Text>
+                <Highlighter size={24} color={colors.primary} />
+                <Text style={[styles.actionText, { color: colors.text }]}>
+                  Highlight
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={handleAddNote}
               >
-                <FileText size={24} color={Colors.light.primary} />
-                <Text style={styles.actionText}>Note</Text>
+                <FileText size={24} color={colors.primary} />
+                <Text style={[styles.actionText, { color: colors.text }]}>
+                  Note
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -217,10 +238,10 @@ export function VerseActionsSheet({
               >
                 <Heart
                   size={24}
-                  color={Colors.light.primary}
-                  fill={isVerseFavorite ? Colors.light.primary : "transparent"}
+                  color={colors.primary}
+                  fill={isVerseFavorite ? colors.primary : "transparent"}
                 />
-                <Text style={styles.actionText}>
+                <Text style={[styles.actionText, { color: colors.text }]}>
                   {isVerseFavorite ? "Unfavorite" : "Favorite"}
                 </Text>
               </TouchableOpacity>
@@ -229,22 +250,28 @@ export function VerseActionsSheet({
                 style={styles.actionButton}
                 onPress={handleShare}
               >
-                <Share2 size={24} color={Colors.light.primary} />
-                <Text style={styles.actionText}>Share</Text>
+                <Share2 size={24} color={colors.primary} />
+                <Text style={[styles.actionText, { color: colors.text }]}>
+                  Share
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.actionButton}
                 onPress={handleCopy}
               >
-                <Copy size={24} color={Colors.light.primary} />
-                <Text style={styles.actionText}>Copy</Text>
+                <Copy size={24} color={colors.primary} />
+                <Text style={[styles.actionText, { color: colors.text }]}>
+                  Copy
+                </Text>
               </TouchableOpacity>
             </View>
 
             {showColorPicker && (
-              <View style={styles.colorPicker}>
-                <Text style={styles.colorPickerTitle}>
+              <View
+                style={[styles.colorPicker, { borderTopColor: colors.border }]}
+              >
+                <Text style={[styles.colorPickerTitle, { color: colors.text }]}>
                   Choose Highlight Color
                 </Text>
                 <View style={styles.colorOptions}>
@@ -253,7 +280,10 @@ export function VerseActionsSheet({
                       key={item.name}
                       style={[
                         styles.colorOption,
-                        { backgroundColor: item.color },
+                        {
+                          backgroundColor: item.color,
+                          borderColor: colors.border,
+                        },
                       ]}
                       onPress={() => handleHighlight(item.name)}
                     />
@@ -261,10 +291,18 @@ export function VerseActionsSheet({
                 </View>
                 {isVerseHighlighted && (
                   <TouchableOpacity
-                    style={styles.removeButton}
+                    style={[
+                      styles.removeButton,
+                      { backgroundColor: colors.error },
+                    ]}
                     onPress={handleRemoveHighlight}
                   >
-                    <Text style={styles.removeButtonText}>
+                    <Text
+                      style={[
+                        styles.removeButtonText,
+                        { color: colors.cardBackground },
+                      ]}
+                    >
                       Remove Highlight
                     </Text>
                   </TouchableOpacity>
@@ -292,7 +330,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   sheet: {
-    backgroundColor: Colors.light.cardBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 20,
@@ -309,24 +346,20 @@ const styles = StyleSheet.create({
   verseRef: {
     fontSize: 18,
     fontWeight: "700" as const,
-    color: Colors.light.primary,
   },
   closeButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.light.background,
     justifyContent: "center",
     alignItems: "center",
   },
   verseTextDisplay: {
     fontSize: 16,
     lineHeight: 24,
-    color: Colors.light.text,
     marginBottom: 24,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: Colors.light.background,
     borderRadius: 12,
   },
   actions: {
@@ -342,7 +375,6 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 12,
     fontWeight: "600" as const,
-    color: Colors.light.text,
     marginTop: 8,
     textAlign: "center" as const,
   },
@@ -350,12 +382,10 @@ const styles = StyleSheet.create({
     marginTop: 24,
     paddingTop: 24,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
   },
   colorPickerTitle: {
     fontSize: 16,
     fontWeight: "700" as const,
-    color: Colors.light.text,
     marginBottom: 16,
   },
   colorOptions: {
@@ -368,10 +398,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     borderWidth: 2,
-    borderColor: Colors.light.border,
   },
   removeButton: {
-    backgroundColor: Colors.light.error,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -380,6 +408,5 @@ const styles = StyleSheet.create({
   removeButtonText: {
     fontSize: 14,
     fontWeight: "700" as const,
-    color: Colors.light.cardBackground,
   },
 });

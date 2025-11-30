@@ -3,12 +3,14 @@ export interface Verse {
   chapter: number;
   verse: number;
   text: string;
+  version: string;
 }
 
 export interface Chapter {
   book: string;
   chapter: number;
   verses: Verse[];
+  version: string;
 }
 
 export interface Book {
@@ -22,6 +24,15 @@ export interface VerseReference {
   book: string;
   chapter: number;
   verse: number;
+  version?: string;
+}
+
+export interface BibleVersion {
+  id: string;
+  name: string;
+  abbreviation: string;
+  language: string;
+  copyright?: string;
 }
 
 export interface Highlight {
@@ -93,4 +104,5 @@ export interface UserSettings {
   lineSpacing: number;
   notifications: boolean;
   dailyReminderTime?: string;
+  defaultBibleVersion: string;
 }
