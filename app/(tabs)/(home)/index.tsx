@@ -2,6 +2,7 @@ import { BookSelectorModal } from "@/components/book-selector-modal";
 import Colors from "@/constants/colors";
 import { DEVOTIONALS } from "@/data/bible-data";
 import { useTheme } from "@/hooks/use-theme";
+import { generateHomeMessage } from "@/services/ai-service";
 import { useBibleStore } from "@/stores/bible-store";
 import { Book } from "@/types/bible";
 import { useRouter } from "expo-router";
@@ -24,6 +25,7 @@ export default function HomeScreen() {
     useBibleStore();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [showBookSelector, setShowBookSelector] = useState<boolean>(false);
+  const [greeting, setGreeting] = useState("Good Morning");
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -32,6 +34,12 @@ export default function HomeScreen() {
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
+
+  useEffect(() => {
+    generateHomeMessage("User", "For God so loved the world...").then(
+      setGreeting
+    ); // Example recent verse
+  }, []);
 
   const todayDevotion = DEVOTIONALS[0];
   const verseOfDay = {
@@ -57,7 +65,7 @@ export default function HomeScreen() {
         <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
           <View style={styles.header}>
             <Text style={[styles.greeting, { color: colors.text }]}>
-              Good Morning
+              {greeting}
             </Text>
             <TouchableOpacity
               style={[
@@ -191,13 +199,7 @@ export default function HomeScreen() {
             </Text>
             <View style={styles.quickLinksGrid}>
               <TouchableOpacity
-                style={[
-                  styles.quickLinkCard,
-                  {
-                    backgroundColor: colors.cardBackground,
-                    shadowColor: colors.shadow,
-                  },
-                ]}
+                style={[styles.quickLinkCard]}
                 onPress={() => router.push("/(tabs)/(notes)")}
               >
                 <FileText size={28} color={colors.primary} />
@@ -276,12 +278,14 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: "row",
+    width: "100%",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 24,
   },
   greeting: {
     fontSize: 32,
+    width: "80%",
     fontWeight: "700" as const,
     color: Colors.light.text,
   },

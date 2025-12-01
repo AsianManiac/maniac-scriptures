@@ -98,9 +98,7 @@ export default function FavoritesScreen() {
           >
             <BookOpen
               size={16}
-              color={
-                sortBy === "bible" ? colors.cardBackground : colors.primary
-              }
+              color={sortBy === "bible" ? colors.text : colors.primary}
             />
             <Text
               style={[
@@ -124,12 +122,13 @@ export default function FavoritesScreen() {
           >
             <Calendar
               size={16}
-              color={sortBy === "date" ? colors.cardBackground : colors.primary}
+              color={sortBy === "date" ? colors.text : colors.primary}
             />
             <Text
               style={[
                 styles.filterButtonText,
-                sortBy === "date" && { color: colors.cardBackground },
+                sortBy === "date" && { color: colors.text },
+                { color: colors.text },
               ]}
             >
               Date Added

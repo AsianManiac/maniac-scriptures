@@ -8,6 +8,8 @@ import {
   UserSettings,
   VerseReference,
 } from "@/types/bible";
+import { clearBibleCache } from "@/utils/bible-api";
+import { Directory, Paths } from "expo-file-system";
 import * as ExpoSecureStore from "expo-secure-store";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
@@ -24,6 +26,8 @@ interface BibleState {
   currentBook: string;
   currentChapter: number;
   targetVerse: number | null;
+  clearCache: () => Promise<void>;
+  resetAppData: () => void;
   setDefaultVersion: (versionId: string) => void;
   preloadVersion: (versionId: string) => Promise<void>;
   addHighlight: (highlight: Highlight) => void;
@@ -49,7 +53,7 @@ interface BibleState {
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
-  theme: "light",
+  theme: "system",
   fontSize: 17,
   lineSpacing: 1.5,
   notifications: true,
@@ -262,6 +266,36 @@ export const useBibleStore = create<BibleState>()(
           currentChapter: chapter,
           targetVerse: verse,
         });
+      },
+      clearCache: async () => {
+        try {
+          clearBibleCache();
+          const storageDir = new Directory(Paths.document, "bible_versions");
+          if (storageDir.exists) {
+            storageDir.delete(); // Clear downloaded versions
+            storageDir.create(); // Recreate empty
+          }
+          console.log("Cache cleared");
+        } catch (error) {
+          console.error("Clear cache failed:", error);
+        }
+      },
+      resetAppData: () => {
+        // Reset to defaults
+        set({
+          highlights: [],
+          notes: [],
+          favorites: [],
+          collections: [],
+          settings: DEFAULT_SETTINGS,
+          history: [],
+          currentBook: "John",
+          currentChapter: 3,
+          targetVerse: null,
+        });
+        // Clear storage
+        SecureStore.deleteItemAsync("bible-storage");
+        console.log("App data reset");
       },
     }),
     {

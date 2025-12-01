@@ -2,6 +2,7 @@ import { ChapterVerseSelectorModal } from "@/components/bible-verse-selector-mod
 import { VerseActionsSheet } from "@/components/verse-action-sheet";
 import { VersionSelectorModal } from "@/components/version-selector-modal";
 import { useTheme } from "@/hooks/use-theme";
+import { generateNoteFromVerse } from "@/services/ai-service";
 import { useBibleStore } from "@/stores/bible-store";
 import { Verse, VerseReference } from "@/types/bible";
 import { fetchChapter, getBook } from "@/utils/bible-api";
@@ -12,11 +13,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Settings,
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Pressable,
   ScrollView,
@@ -52,6 +53,11 @@ export default function BibleScreen() {
   const [showVersionSelector, setShowVersionSelector] =
     useState<boolean>(false);
   const [showNavBar, setShowNavBar] = useState<boolean>(true);
+
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set());
+  const [showNoteEditor, setShowNoteEditor] = useState(false);
+  const [aiGeneratedNote, setAiGeneratedNote] = useState("");
 
   const scrollViewRef = useRef<ScrollView>(null);
   const targetVerseRefs = useRef<{ [key: number]: any }>({});
@@ -223,6 +229,45 @@ export default function BibleScreen() {
     // The query will automatically refetch due to queryKey change
   };
 
+  const toggleVerseSelect = (verseNum: number) => {
+    setSelectionMode(true);
+    setSelectedVerses((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(verseNum)) newSet.delete(verseNum);
+      else newSet.add(verseNum);
+      if (newSet.size === 0) setSelectionMode(false);
+      return newSet;
+    });
+  };
+
+  const handleLongPress = (verseRef: VerseReference, text: string) => {
+    setSelectedVerse(verseRef);
+    setSelectedVerseText(text);
+    setShowActions(true);
+  };
+
+  const handleHeaderAction = async () => {
+    const combinedText = Array.from(selectedVerses)
+      .sort((a, b) => a - b)
+      .map((v) => verses?.find((verse) => verse.verse === v)?.text || "")
+      .join("\n");
+    setSelectedVerseText(combinedText);
+    setSelectedVerse({ book: currentBook, chapter: currentChapter, verse: 0 }); // 0 for multi
+    setShowActions(true);
+  };
+
+  const generateAiNote = async () => {
+    try {
+      const noteText = await generateNoteFromVerse(selectedVerseText, {
+        tone: "reflective",
+        length: "medium",
+      });
+      setAiGeneratedNote(noteText);
+      setShowNoteEditor(true);
+    } catch (error) {
+      Alert.alert("AI Error", "Failed to generate note.");
+    }
+  };
   return (
     <View
       style={[
@@ -255,7 +300,6 @@ export default function BibleScreen() {
         >
           <Text style={[styles.versionButtonText, { color: colors.primary }]}>
             {settings.defaultBibleVersion.toLocaleUpperCase()}
-            {/* {settings.defaultBibleVersion.toUpperCase()} */}
           </Text>
         </TouchableOpacity>
 
@@ -265,12 +309,6 @@ export default function BibleScreen() {
             onPress={() => router.push("/search" as any)}
           >
             <Search size={20} color={colors.text} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => router.push("/(profile)" as any)}
-            style={[styles.iconButton, { backgroundColor: colors.background }]}
-          >
-            <Settings size={20} color={colors.text} />
           </TouchableOpacity>
         </View>
       </View>

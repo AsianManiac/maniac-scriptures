@@ -1,9 +1,15 @@
 import Colors from "@/constants/colors";
 import { DEVOTIONALS } from "@/data/bible-data";
 import { useTheme } from "@/hooks/use-theme";
+import { fetchDevotionals } from "@/services/ai-service";
+import { useAiStore } from "@/stores/ai-store";
+import { VerseReference } from "@/types/bible";
+import { sanitizeKey } from "@/utils/lib";
 import { useRouter } from "expo-router";
 import { BookOpen, Heart } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import {
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,10 +18,56 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+interface Devotional {
+  id: string;
+  title: string;
+  content: string;
+  verseReference: VerseReference;
+  verseText: string;
+  category: string;
+  date: string;
+  sourceLink?: string;
+}
+
 export default function DevotionalsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const categories = ["All", "Faith", "Wisdom", "Prayer", "Love", "Grace"];
+  const [categories] = useState([
+    "All",
+    "Faith",
+    "Wisdom",
+    "Prayer",
+    "Love",
+    "Grace",
+    "Open Heavens",
+  ]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [devotionals, setDevotionals] = useState<Devotional[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadDevotionals = async (category?: string, forceRefresh = false) => {
+    setRefreshing(true);
+    if (forceRefresh) {
+      // Clear cache for refresh
+      const cacheKey = sanitizeKey(
+        `devotions_${category || "general"}_${
+          new Date().toISOString().split("T")[0]
+        }`
+      );
+      await useAiStore.getState().clearCache(); // Or specific key if needed
+    }
+    try {
+      const fetched = await fetchDevotionals(category);
+      setDevotionals(fetched);
+    } catch (error) {
+      console.error("Failed to load devotionals:", error);
+    }
+    setRefreshing(false);
+  };
+
+  useEffect(() => {
+    loadDevotionals(selectedCategory);
+  }, [selectedCategory]);
 
   return (
     <SafeAreaView
@@ -41,17 +93,18 @@ export default function DevotionalsScreen() {
             key={category}
             style={[
               styles.categoryChip,
-              category === "All" && styles.categoryChipActive,
+              selectedCategory === category && styles.categoryChipActive,
               {
                 backgroundColor: colors.cardBackground,
                 borderColor: colors.primary,
               },
             ]}
+            onPress={() => setSelectedCategory(category)}
           >
             <Text
               style={[
                 styles.categoryText,
-                category === "All" && styles.categoryTextActive,
+                selectedCategory === category && styles.categoryTextActive,
                 { color: colors.text },
               ]}
             >
@@ -64,6 +117,12 @@ export default function DevotionalsScreen() {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadDevotionals(selectedCategory, true)}
+          />
+        }
       >
         <View style={styles.content}>
           {DEVOTIONALS.map((devotional) => (

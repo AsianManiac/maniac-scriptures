@@ -1,8 +1,9 @@
 import { useTheme } from "@/hooks/use-theme";
 import { Note, VerseReference } from "@/types/bible";
-import { Save, X } from "lucide-react-native";
+import { Hash, Save, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -13,26 +14,25 @@ import {
   View,
 } from "react-native";
 
-interface NoteEditorModalProps {
+interface Props {
   visible: boolean;
   onClose: () => void;
   onSave: (note: Note) => void;
-  verseReference?: VerseReference;
   existingNote?: Note;
+  verseReference?: VerseReference;
 }
 
 export function NoteEditorModal({
   visible,
   onClose,
   onSave,
-  verseReference,
   existingNote,
-}: NoteEditorModalProps) {
-  const [title, setTitle] = useState<string>("");
-  const [content, setContent] = useState<string>("");
-  const [tags, setTags] = useState<string>("");
-
+  verseReference,
+}: Props) {
   const { colors } = useTheme();
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [tags, setTags] = useState("");
 
   useEffect(() => {
     if (existingNote) {
@@ -47,25 +47,26 @@ export function NoteEditorModal({
   }, [existingNote, visible]);
 
   const handleSave = () => {
+    if (!title.trim() && !content.trim()) return;
+
     const note: Note = {
       id: existingNote?.id || `note-${Date.now()}`,
-      reference: verseReference,
       title: title.trim() || "Untitled Note",
       content: content.trim(),
       tags: tags
         .split(",")
         .map((t) => t.trim())
-        .filter((t) => t.length > 0),
+        .filter(Boolean),
+      reference: verseReference || existingNote?.reference,
       createdAt: existingNote?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
-    console.log("Saving note:", note);
     onSave(note);
-    handleClose();
+    onClose();
   };
 
-  const handleClose = () => {
+  const close = () => {
     setTitle("");
     setContent("");
     setTags("");
@@ -76,230 +77,242 @@ export function NoteEditorModal({
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
-      onRequestClose={handleClose}
+      transparent
+      onRequestClose={close}
     >
-      <View style={styles.modalOverlay}>
-        <View
-          style={[
-            styles.modalContainer,
-            { backgroundColor: colors.cardBackground },
-          ]}
-        >
-          <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text }]}>
-              {existingNote ? "Edit Note" : "New Note"}
-            </Text>
-            <View style={styles.headerButtons}>
-              <TouchableOpacity
-                onPress={handleClose}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View style={styles.overlay}>
+          <View
+            style={[styles.modal, { backgroundColor: colors.cardBackground }]}
+          >
+            {/* Header */}
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                {existingNote ? "Edit Note" : "New Note"}
+              </Text>
+              <TouchableOpacity onPress={close} style={styles.closeBtn}>
+                <X size={26} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Verse Reference */}
+            {verseReference && (
+              <View
                 style={[
-                  styles.closeButton,
-                  { backgroundColor: colors.background },
+                  styles.refCard,
+                  { backgroundColor: colors.primaryLight },
                 ]}
               >
-                <X size={24} color={colors.text} />
+                <Text style={[styles.refLabel, { color: colors.primaryDark }]}>
+                  Linked Verse
+                </Text>
+                <Text style={[styles.refText, { color: colors.primaryDark }]}>
+                  {verseReference.book} {verseReference.chapter}:
+                  {verseReference.verse}
+                </Text>
+              </View>
+            )}
+
+            {/* Scrollable Content */}
+            <ScrollView
+              style={styles.scrollContainer}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Title */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Title
+                </Text>
+                <TextInput
+                  style={[
+                    styles.titleInput,
+                    {
+                      backgroundColor: colors.background,
+                      color: colors.text,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  placeholder="Enter note title..."
+                  placeholderTextColor={colors.textLight}
+                  value={title}
+                  onChangeText={setTitle}
+                  autoFocus={!existingNote}
+                />
+              </View>
+
+              {/* Content - Now HUGE and scrollable */}
+              <View style={styles.field}>
+                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                  Your Note
+                </Text>
+                <TextInput
+                  style={[
+                    styles.contentInput,
+                    {
+                      backgroundColor: colors.background,
+                      color: colors.text,
+                      borderColor: colors.border,
+                      minHeight: 280, // ← This is the fix!
+                      paddingTop: 16,
+                    },
+                  ]}
+                  placeholder="Start writing your thoughts, reflections, prayers..."
+                  placeholderTextColor={colors.textLight}
+                  multiline
+                  textAlignVertical="top"
+                  value={content}
+                  onChangeText={setContent}
+                />
+              </View>
+
+              {/* Tags */}
+              <View style={styles.field}>
+                <View style={styles.tagHeader}>
+                  <Hash size={18} color={colors.textSecondary} />
+                  <Text style={[styles.label, { color: colors.textSecondary }]}>
+                    Tags (comma separated)
+                  </Text>
+                </View>
+                <TextInput
+                  style={[
+                    styles.tagInput,
+                    {
+                      backgroundColor: colors.background,
+                      color: colors.text,
+                      borderColor: colors.border,
+                    },
+                  ]}
+                  placeholder="e.g. faith, prayer, encouragement"
+                  placeholderTextColor={colors.textLight}
+                  value={tags}
+                  onChangeText={setTags}
+                />
+              </View>
+            </ScrollView>
+
+            {/* Save Button - Fixed at bottom */}
+            <View style={styles.footer}>
+              <TouchableOpacity
+                style={[styles.saveBtn, { backgroundColor: colors.primary }]}
+                onPress={handleSave}
+              >
+                <Save size={22} color={colors.cardBackground} />
+                <Text
+                  style={[styles.saveText, { color: colors.cardBackground }]}
+                >
+                  {existingNote ? "Update Note" : "Save Note"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
-
-          {verseReference && (
-            <View
-              style={[
-                styles.verseReferenceCard,
-                {
-                  backgroundColor: colors.primaryLight,
-                  borderLeftColor: colors.primary,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.verseReferenceLabel,
-                  { color: colors.textSecondary },
-                ]}
-              >
-                Verse Reference
-              </Text>
-              <Text style={[styles.verseReferenceText, { color: colors.text }]}>
-                {verseReference.book} {verseReference.chapter}:
-                {verseReference.verse}
-              </Text>
-            </View>
-          )}
-
-          <ScrollView
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.text }]}>Title</Text>
-              <TextInput
-                style={[
-                  styles.titleInput,
-                  {
-                    backgroundColor: colors.background,
-                    color: colors.text,
-                    borderColor: colors.border,
-                  },
-                ]}
-                placeholder="Enter note title..."
-                placeholderTextColor={colors.textLight}
-                value={title}
-                onChangeText={setTitle}
-                maxLength={100}
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Content</Text>
-              <TextInput
-                style={[
-                  styles.contentInput,
-                  {
-                    backgroundColor: colors.background,
-                    color: colors.text,
-                    borderColor: colors.border,
-                  },
-                ]}
-                placeholder="Write your notes here..."
-                placeholderTextColor={colors.textLight}
-                value={content}
-                onChangeText={setContent}
-                multiline
-                numberOfLines={10}
-                textAlignVertical="top"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Tags (comma separated)</Text>
-              <TextInput
-                style={styles.titleInput}
-                placeholder="prayer, faith, hope..."
-                placeholderTextColor={colors.textLight}
-                value={tags}
-                onChangeText={setTags}
-              />
-            </View>
-          </ScrollView>
-
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              { backgroundColor: colors.primary, shadowColor: colors.shadow },
-            ]}
-            onPress={handleSave}
-          >
-            <Save size={20} color={colors.cardBackground} />
-            <Text
-              style={[styles.saveButtonText, { color: colors.cardBackground }]}
-            >
-              Save Note
-            </Text>
-          </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: {
+  overlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "flex-end",
   },
-  modalContainer: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: "90%",
-    paddingTop: 20,
-    paddingBottom: Platform.OS === "ios" ? 40 : 20,
+  modal: {
+    height: "92%", // Takes almost full screen
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    overflow: "hidden",
+    paddingTop: 12,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 16,
     borderBottomWidth: 1,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700" as const,
-  },
-  headerButtons: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  verseReferenceCard: {
-    marginHorizontal: 20,
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-  },
-  verseReferenceLabel: {
-    fontSize: 11,
-    fontWeight: "600" as const,
-    textTransform: "uppercase" as const,
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  verseReferenceText: {
-    fontSize: 16,
-    fontWeight: "700" as const,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  inputGroup: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-    marginBottom: 8,
-  },
-  titleInput: {
-    borderRadius: 12,
+  headerTitle: { fontSize: 24, fontWeight: "700" },
+  closeBtn: { padding: 6 },
+  refCard: {
+    marginHorizontal: 24,
+    marginVertical: 12,
     padding: 16,
-    fontSize: 16,
-    borderWidth: 1,
-  },
-  contentInput: {
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    borderWidth: 1,
-    minHeight: 200,
-  },
-  saveButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginHorizontal: 20,
-    marginTop: 16,
-    paddingVertical: 16,
     borderRadius: 16,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  saveButtonText: {
+  refLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  refText: { fontSize: 17, fontWeight: "700", marginTop: 6 },
+
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+
+  field: { marginHorizontal: 24, marginBottom: 20 },
+  label: { fontSize: 15, fontWeight: "600", marginBottom: 10 },
+
+  titleInput: {
+    fontSize: 19,
+    fontWeight: "600",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+  },
+
+  contentInput: {
+    fontSize: 17,
+    lineHeight: 26,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    textAlignVertical: "top",
+  },
+
+  tagHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  tagInput: {
     fontSize: 16,
-    fontWeight: "700" as const,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
   },
+
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 34 : 20,
+    backgroundColor: "transparent",
+  },
+  saveBtn: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 18,
+    borderRadius: 18,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+  },
+  saveText: { fontSize: 18, fontWeight: "700" },
 });

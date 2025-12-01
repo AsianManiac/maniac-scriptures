@@ -1,6 +1,6 @@
 import { useTheme } from "@/hooks/use-theme";
 import { Tabs } from "expo-router";
-import { FileText, Heart, Home, Star } from "lucide-react-native";
+import { FileText, Heart, Home, Settings, Star } from "lucide-react-native";
 import React from "react";
 
 export default function TabLayout() {
@@ -52,6 +52,15 @@ export default function TabLayout() {
           title: "Favorites",
           tabBarIcon: ({ color, size }) => (
             <Star color={color} size={size} fill={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="(settings)"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ color, size }) => (
+            <Settings color={color} size={size} />
           ),
         }}
       />
