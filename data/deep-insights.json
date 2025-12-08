@@ -1,0 +1,67 @@
+[
+  {
+    "id": "loc_001",
+    "category": "location",
+    "title": "The Tower of Babel",
+    "teaser": "Where would you find the Tower of Babel today?",
+    "fact": "The Tower of Babel was likely located in modern-day Hillah, Iraq, about 50 miles south of Baghdad.",
+    "scripture": "Genesis 11:9",
+    "coordinates": { "lat": 32.478, "long": 44.428 }
+  },
+  {
+    "id": "loc_002",
+    "category": "location",
+    "title": "Garden of Eden",
+    "teaser": "Is the Garden of Eden a myth or a map coordinate?",
+    "fact": "Some scholars speculate it was near the head of the Persian Gulf, where the Tigris and Euphrates rivers meet today.",
+    "scripture": "Genesis 2:10-14"
+  },
+  {
+    "id": "loc_003",
+    "category": "location",
+    "title": "Jonah's Nineveh",
+    "teaser": "The city Jonah refused to visit is a major modern conflict zone.",
+    "fact": "Ancient Nineveh is actually modern-day Mosul, Iraq. It remains a site of immense historical significance.",
+    "scripture": "Jonah 3:3"
+  },
+  {
+    "id": "loc_004",
+    "category": "location",
+    "title": "Abraham's Ur",
+    "teaser": "From where did Abraham begin his journey?",
+    "fact": "Ur of the Chaldees is now Tell el-Muqayyar, Iraq. It is home to a massive Ziggurat structure that is still visible today.",
+    "scripture": "Genesis 11:31"
+  },
+  {
+    "id": "lang_001",
+    "category": "linguistic",
+    "title": "Adam & The Earth",
+    "teaser": "Why is he called 'Adam'?",
+    "fact": "In Hebrew, 'Man' is 'Adam' and 'Ground' is 'Adamah'. It is a divine wordplay: Man was made from the ground.",
+    "scripture": "Genesis 2:7"
+  },
+  {
+    "id": "lang_002",
+    "category": "linguistic",
+    "title": "The Camel & The Needle",
+    "teaser": "Did Jesus really mean a camel?",
+    "fact": "The Aramaic word 'gamla' can mean 'camel' OR 'thick rope'. A rope fitting through a needle makes visual sense, though both imply impossibility!",
+    "scripture": "Matthew 19:24"
+  },
+  {
+    "id": "arch_001",
+    "category": "archaeology",
+    "title": "Hezekiah’s Tunnel",
+    "teaser": "A 2,700-year-old secret passage you can walk in.",
+    "fact": "Dug in 701 BC to hide water from Assyrians, this 1,750-foot tunnel still flows with water in Jerusalem today.",
+    "scripture": "2 Kings 20:20"
+  },
+  {
+    "id": "arch_002",
+    "category": "archaeology",
+    "title": "The Pilate Stone",
+    "teaser": "Did Pontius Pilate exist?",
+    "fact": "Skeptics doubted his existence until 1961, when archaeologists found a limestone block with his name carved on it in Caesarea.",
+    "scripture": "John 18:29"
+  }
+]

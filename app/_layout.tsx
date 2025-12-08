@@ -40,6 +40,7 @@ function RootLayoutNav() {
         <Stack.Screen name="search" options={{ headerShown: false }} />
         <Stack.Screen name="(bible)" options={{ headerShown: false }} />
         <Stack.Screen name="(profile)" options={{ headerShown: false }} />
+        <Stack.Screen name="game" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style={isDark ? "light" : "dark"} />
     </ThemeProvider>

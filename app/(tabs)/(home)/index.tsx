@@ -228,10 +228,13 @@ export default function HomeScreen() {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.quickLinkCard}>
+              <TouchableOpacity
+                style={styles.quickLinkCard}
+                onPress={() => router.push("/game/game-hub")}
+              >
                 <BookOpen size={28} color={Colors.light.primary} />
                 <Text style={[styles.quickLinkText, { color: colors.text }]}>
-                  Plans
+                  Quests
                 </Text>
                 <Text
                   style={[styles.quickLinkCount, { color: colors.primary }]}
