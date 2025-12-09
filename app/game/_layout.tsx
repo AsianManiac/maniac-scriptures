@@ -39,6 +39,37 @@ export default function ProfileLayout() {
           ...Transition.presets.ZoomIn(),
         }}
       />
+      <Stack.Screen
+        name="falling-word"
+        options={{ headerShown: false, ...Transition.presets.ZoomIn() }}
+      />
+      <Stack.Screen
+        name="bible-trivia"
+        options={{ headerShown: false, ...Transition.presets.SlideFromTop() }}
+      />
+
+      {/* Campaign Routes */}
+      <Stack.Screen
+        name="campaign/map"
+        options={{
+          ...Transition.presets.SlideFromBottom(),
+          gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="campaign/play"
+        options={{
+          ...Transition.presets.ZoomIn(),
+          gestureEnabled: false,
+        }}
+      />
+      <Stack.Screen
+        name="campaign/stages"
+        options={{
+          ...Transition.presets.ZoomIn(),
+          gestureEnabled: false,
+        }}
+      />
     </Stack>
   );
 }

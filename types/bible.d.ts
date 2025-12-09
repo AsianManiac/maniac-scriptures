@@ -100,6 +100,7 @@ export interface ReadingHistory {
 
 export interface UserSettings {
   theme: "light" | "dark" | "system";
+  themeVariant: string;
   fontSize: number;
   lineSpacing: number;
   notifications: boolean;

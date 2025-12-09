@@ -1,6 +1,6 @@
 import { useInsightStore } from "@/stores/insight-store";
 import { useRouter } from "expo-router";
-import { Book, BookOpen, BrainCircuit, Map } from "lucide-react-native";
+import { Book, BookOpen, BrainCircuit, Scroll } from "lucide-react-native";
 import React, { ReactNode } from "react";
 import {
   ScrollView,
@@ -60,15 +60,14 @@ export default function GameHubScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.sectionHeader}>Daily Discoveries</Text>
+        <Text style={styles.sectionHeader}>Campaign Journey</Text>
 
-        {/* The Deep Inside Feature */}
         <MenuCard
-          title="Deep Insights"
-          subtitle="Locations, Language & Secrets"
-          color={GAME_THEME.colors.secondary}
-          icon={<BookOpen color={GAME_THEME.colors.secondary} fill="#FFF" />}
-          onPress={() => router.push("/game/deep-insights")}
+          title="Biblical Chronicles"
+          subtitle="Story Mode & Puzzles"
+          color={GAME_THEME.colors.primary}
+          icon={<Scroll color={GAME_THEME.colors.primary} fill="#FFF" />}
+          onPress={() => router.push("/game/campaign/stages")}
         />
 
         <Text style={styles.sectionHeader}>Campaign Modes</Text>
@@ -78,31 +77,33 @@ export default function GameHubScreen() {
           subtitle="Test your knowledge"
           color={GAME_THEME.colors.primary}
           icon={<BrainCircuit color={GAME_THEME.colors.primary} />}
-          onPress={() => {}} // Connect to quiz logic later
+          onPress={() => router.push("/game/bible-trivia")}
         />
-
         <MenuCard
-          title="Map Explorer"
-          subtitle="Find ancient cities (Alpha)"
-          color={GAME_THEME.colors.danger}
-          icon={<Map color={GAME_THEME.colors.danger} />}
-          onPress={() => router.push("/game/map-explorer")} // Connect to expo-maps logic later
+          title="Falling Word"
+          subtitle="Complete the KJV Verses"
+          color={GAME_THEME.colors.accent}
+          icon={<Book color={GAME_THEME.colors.accent} fill="#FFF" />}
+          onPress={() => router.push("/game/falling-word")}
         />
 
         {/* <MenuCard
-          title="Falling Word"
-          subtitle="Find ancient cities (Alpha)"
-          color={GAME_THEME.colors.accent}
-          icon={<Map color={GAME_THEME.colors.accent} />}
-          onPress={() => router.push("/game/falling-word")} // Connect to expo-maps logic later
-        /> */}
-
-        <MenuCard
           title="Verse Ninja"
           subtitle="Find ancient cities (Alpha)"
           color={GAME_THEME.colors.accent}
           icon={<Book color={GAME_THEME.colors.accent} />}
           onPress={() => router.push("/game/verse-ninja")} // Connect to expo-maps logic later
+        /> */}
+
+        <Text style={styles.sectionHeader}>Discover</Text>
+
+        {/* The Deep Inside Feature */}
+        <MenuCard
+          title="Deep Insights"
+          subtitle="Locations, Language & Secrets"
+          color={GAME_THEME.colors.secondary}
+          icon={<BookOpen color={GAME_THEME.colors.secondary} fill="#FFF" />}
+          onPress={() => router.push("/game/deep-insights")}
         />
 
         <View style={{ marginTop: 20, alignItems: "center" }}>

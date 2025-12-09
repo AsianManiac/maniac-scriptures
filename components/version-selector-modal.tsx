@@ -1,14 +1,21 @@
-import { useTheme } from "@/hooks/use-theme";
-import { getBibleVersions } from "@/utils/bible-api";
-import { Check, X } from "lucide-react-native";
 import {
+  ALL_BIBLE_VERSIONS,
+  RemoteBibleVersion,
+} from "@/constants/bible-versions-config";
+import { useTheme } from "@/hooks/use-theme";
+import { useBibleStore } from "@/stores/bible-store";
+import { Check, Download, Trash2, X } from "lucide-react-native";
+import { useEffect } from "react";
+import {
+  Alert,
   Modal,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { FlatList } from "react-native-gesture-handler";
+import { CircularProgress } from "./ui/circular-progress";
 
 interface VersionSelectorModalProps {
   visible: boolean;
@@ -24,14 +31,121 @@ export function VersionSelectorModal({
   onVersionSelect,
 }: VersionSelectorModalProps) {
   const { colors } = useTheme();
-  const bibleVersions = getBibleVersions();
+  const {
+    downloadedVersions,
+    downloadingVersions,
+    downloadVersion,
+    downloadProgress,
+    deleteVersion,
+    checkDownloadedVersions,
+  } = useBibleStore();
+
+  useEffect(() => {
+    if (visible) {
+      checkDownloadedVersions();
+    }
+  }, [visible]);
+
+  const handleDownload = async (version: RemoteBibleVersion) => {
+    try {
+      await downloadVersion(version.id);
+    } catch (e) {
+      Alert.alert(
+        "Download Failed",
+        "Could not download this version. Check internet connection."
+      );
+    }
+  };
+
+  const handleDelete = (version: RemoteBibleVersion) => {
+    Alert.alert(
+      "Delete Version",
+      `Are you sure you want to delete ${version.abbreviation}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteVersion(version.id),
+        },
+      ]
+    );
+  };
+
+  const renderItem = ({ item }: { item: RemoteBibleVersion }) => {
+    const isDownloaded = downloadedVersions.includes(item.id);
+    const isDownloading = downloadingVersions[item.id];
+    const progressData = downloadProgress[item.id];
+    const isSelected = currentVersion === item.id;
+    const isStatic = item.isStatic;
+
+    return (
+      <View
+        style={[styles.itemContainer, { borderBottomColor: colors.border }]}
+      >
+        <TouchableOpacity
+          style={styles.itemContent}
+          onPress={() =>
+            isDownloaded ? onVersionSelect(item.id) : handleDownload(item)
+          }
+          disabled={isDownloading}
+        >
+          <View>
+            <Text style={[styles.itemAbbr, { color: colors.text }]}>
+              {item.abbreviation}
+            </Text>
+            <Text style={[styles.itemName, { color: colors.textSecondary }]}>
+              {item.name}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.actionContainer}>
+          {isDownloading ? (
+            <CircularProgress
+              progress={progressData?.progress || 0}
+              size={28}
+              color={colors.primary}
+            />
+          ) : isSelected ? (
+            <Check size={20} color={colors.primary} />
+          ) : isDownloaded ? (
+            !isStatic ? (
+              <TouchableOpacity
+                onPress={() => handleDelete(item)}
+                style={styles.iconBtn}
+              >
+                <Trash2 size={20} color={colors.error || "#ff4444"} />
+              </TouchableOpacity>
+            ) : null
+          ) : (
+            <TouchableOpacity
+              onPress={() => handleDownload(item)}
+              style={styles.iconBtn}
+            >
+              <Download size={20} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  // Sort: Downloaded first, then alphabetical
+  const sortedVersions = [...ALL_BIBLE_VERSIONS].sort((a, b) => {
+    const aDownloaded = downloadedVersions.includes(a.id);
+    const bDownloaded = downloadedVersions.includes(b.id);
+    if (aDownloaded && !bDownloaded) return -1;
+    if (!aDownloaded && bDownloaded) return 1;
+    return a.abbreviation.localeCompare(b.abbreviation);
+  });
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
       onRequestClose={onClose}
+      presentationStyle="pageSheet"
     >
       <View style={styles.modalOverlay}>
         <View
@@ -55,57 +169,12 @@ export function VersionSelectorModal({
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.versionsList}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.versionsContent}>
-              {bibleVersions.map((version) => (
-                <TouchableOpacity
-                  key={version.id}
-                  style={[
-                    styles.versionItem,
-                    { backgroundColor: colors.background },
-                    currentVersion === version.id && {
-                      backgroundColor: colors.primaryLight,
-                      borderColor: colors.primary,
-                    },
-                  ]}
-                  onPress={() => onVersionSelect(version.id)}
-                >
-                  <View style={styles.versionInfo}>
-                    <Text
-                      style={[
-                        styles.versionName,
-                        { color: colors.text },
-                        currentVersion === version.id && {
-                          color: colors.primaryDark,
-                          fontWeight: "700",
-                        },
-                      ]}
-                    >
-                      {version.name}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.versionDetails,
-                        { color: colors.textSecondary },
-                        currentVersion === version.id && {
-                          color: colors.primaryDark,
-                        },
-                      ]}
-                    >
-                      {version.abbreviation} • {version.language}
-                    </Text>
-                  </View>
-
-                  {currentVersion === version.id && (
-                    <Check size={20} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
+          <FlatList
+            data={sortedVersions}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+          />
         </View>
       </View>
     </Modal>
@@ -143,31 +212,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  versionsList: {
-    flex: 1,
-  },
-  versionsContent: {
-    padding: 20,
-  },
-  versionItem: {
+  listContent: { paddingBottom: 40 },
+  itemContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: "transparent",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
   },
-  versionInfo: {
-    flex: 1,
-  },
-  versionName: {
-    fontSize: 16,
-    fontWeight: "600" as const,
-    marginBottom: 4,
-  },
-  versionDetails: {
-    fontSize: 14,
-  },
+  itemContent: { flex: 1 },
+  itemAbbr: { fontSize: 16, fontWeight: "700", marginBottom: 2 },
+  itemName: { fontSize: 14 },
+  actionContainer: { paddingLeft: 12 },
+  iconBtn: { padding: 8 },
 });

@@ -1,15 +1,16 @@
 import { BookSelectorModal } from "@/components/book-selector-modal";
-import Colors from "@/constants/colors";
 import { DEVOTIONALS } from "@/data/bible-data";
 import { useTheme } from "@/hooks/use-theme";
 import { generateHomeMessage } from "@/services/ai-service";
 import { useBibleStore } from "@/stores/bible-store";
 import { Book } from "@/types/bible";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { BookOpen, Clock, FileText, Heart, Search } from "lucide-react-native";
+import { BookOpen, Gamepad, Heart, Search } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  FlatList,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,27 +19,44 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const blurhash =
+  "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
+
 export default function HomeScreen() {
   const router = useRouter();
   const { colors } = useTheme();
-  const { history, favorites, notes, currentBook, currentChapter } =
-    useBibleStore();
+  const {
+    history,
+    favorites,
+    notes,
+    currentBook,
+    currentChapter,
+    dailyStreak = 0,
+  } = useBibleStore(); // Added dailyStreak
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current; // New scale animation for cards
   const [showBookSelector, setShowBookSelector] = useState<boolean>(false);
   const [greeting, setGreeting] = useState("Good Morning");
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 800,
-      useNativeDriver: true,
-    }).start();
-  }, [fadeAnim]);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, scaleAnim]);
 
   useEffect(() => {
     generateHomeMessage("User", "For God so loved the world...").then(
       setGreeting
-    ); // Example recent verse
+    );
   }, []);
 
   const todayDevotion = DEVOTIONALS[0];
@@ -53,6 +71,26 @@ export default function HomeScreen() {
     router.push("/(bible)");
   };
 
+  // Quick Access items (example data; expand as needed)
+  const quickAccessItems = [
+    {
+      icon: BookOpen,
+      label: "Browse Books",
+      onPress: () => setShowBookSelector(true),
+    },
+    {
+      icon: Heart,
+      label: "Favorites",
+      onPress: () => router.push("/(tabs)/(favorites)"),
+    },
+    {
+      icon: Gamepad,
+      label: "Campaigns",
+      onPress: () => router.push("/game/game-hub"),
+    },
+    // Add more...
+  ];
+
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -62,11 +100,28 @@ export default function HomeScreen() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        <Animated.View
+          style={[
+            styles.content,
+            { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+          ]}
+        >
           <View style={styles.header}>
-            <Text style={[styles.greeting, { color: colors.text }]}>
-              {greeting}
-            </Text>
+            <View style={styles.greetingContainer}>
+              <Text style={[styles.greeting, { color: colors.text }]}>
+                {greeting}
+              </Text>
+              <View
+                style={[
+                  styles.streakBadge,
+                  { backgroundColor: colors.primaryLight },
+                ]}
+              >
+                <Text style={[styles.streakText, { color: colors.primary }]}>
+                  Streak: {dailyStreak}
+                </Text>
+              </View>
+            </View>
             <TouchableOpacity
               style={[
                 styles.searchButton,
@@ -114,8 +169,25 @@ export default function HomeScreen() {
               <Text
                 style={[styles.devotionalLabel, { color: colors.primaryDark }]}
               >
-                Today&apos;s Devotional
+                Today's Devotional
               </Text>
+            </View>
+            {/* Placeholder for image */}
+            <View
+              style={[
+                styles.devotionalImage,
+                { backgroundColor: colors.border },
+              ]}
+            >
+              <Image
+                style={{ flex: 1, width: "100%", backgroundColor: "#0553" }}
+                source={{
+                  uri: "https://images.unsplash.com/photo-1504333638930-c8787321eee0?q=80&w=1000&auto=format&fit=crop",
+                }}
+                placeholder={{ blurhash }}
+                transition={1000}
+                contentFit="cover"
+              />
             </View>
             <Text style={[styles.devotionalTitle, { color: colors.text }]}>
               {todayDevotion.title}
@@ -125,7 +197,7 @@ export default function HomeScreen() {
                 styles.devotionalContent,
                 { color: colors.textSecondary },
               ]}
-              numberOfLines={3}
+              numberOfLines={2}
             >
               {todayDevotion.content}
             </Text>
@@ -167,6 +239,22 @@ export default function HomeScreen() {
                   Chapter {currentChapter}
                 </Text>
               </View>
+              {/* Progress indicator example */}
+              <View
+                style={[
+                  styles.progressBar,
+                  { backgroundColor: colors.primaryLight },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: "50%", backgroundColor: colors.primary },
+                  ]}
+                />
+                <Text> </Text>
+                {/* Example 50% */}
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -174,87 +262,35 @@ export default function HomeScreen() {
             <Text style={[styles.sectionTitle, { color: colors.text }]}>
               Quick Access
             </Text>
-            <TouchableOpacity
-              style={[
-                styles.quickAccessButton,
-                { backgroundColor: colors.primary, shadowColor: colors.shadow },
-              ]}
-              onPress={() => setShowBookSelector(true)}
-            >
-              <BookOpen size={20} color={colors.cardBackground} />
-              <Text
-                style={[
-                  styles.quickAccessButtonText,
-                  { color: colors.cardBackground },
-                ]}
-              >
-                Browse Bible Books
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.quickLinksContainer}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Quick Links
-            </Text>
-            <View style={styles.quickLinksGrid}>
-              <TouchableOpacity
-                style={[styles.quickLinkCard]}
-                onPress={() => router.push("/(tabs)/(notes)")}
-              >
-                <FileText size={28} color={colors.primary} />
-                <Text style={[styles.quickLinkText, { color: colors.text }]}>
-                  Notes
-                </Text>
-                <Text
-                  style={[styles.quickLinkCount, { color: colors.primary }]}
+            <FlatList
+              horizontal
+              data={quickAccessItems}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.quickAccessButton,
+                    {
+                      backgroundColor: colors.primary,
+                      shadowColor: colors.shadow,
+                    },
+                  ]}
+                  onPress={item.onPress}
                 >
-                  {notes.length}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickLinkCard}
-                onPress={() => router.push("/(tabs)/(favorites)")}
-              >
-                <Heart size={28} color={colors.primary} />
-                <Text style={[styles.quickLinkText, { color: colors.text }]}>
-                  Favorites
-                </Text>
-                <Text
-                  style={[styles.quickLinkCount, { color: colors.primary }]}
-                >
-                  {favorites.length}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.quickLinkCard}
-                onPress={() => router.push("/game/game-hub")}
-              >
-                <BookOpen size={28} color={Colors.light.primary} />
-                <Text style={[styles.quickLinkText, { color: colors.text }]}>
-                  Quests
-                </Text>
-                <Text
-                  style={[styles.quickLinkCount, { color: colors.primary }]}
-                >
-                  0
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.quickLinkCard}>
-                <Clock size={28} color={Colors.light.primary} />
-                <Text style={[styles.quickLinkText, { color: colors.text }]}>
-                  History
-                </Text>
-                <Text
-                  style={[styles.quickLinkCount, { color: colors.primary }]}
-                >
-                  {history.length}
-                </Text>
-              </TouchableOpacity>
-            </View>
+                  <item.icon size={20} color={colors.cardBackground} />
+                  <Text
+                    style={[
+                      styles.quickAccessButtonText,
+                      { color: colors.cardBackground },
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              keyExtractor={(item) => item.label}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.quickAccessList}
+            />
           </View>
         </Animated.View>
       </ScrollView>
@@ -270,28 +306,24 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-  },
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
+  content: { padding: 20 },
   header: {
     flexDirection: "row",
-    width: "100%",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 24,
   },
-  greeting: {
-    fontSize: 32,
-    width: "80%",
-    fontWeight: "700" as const,
-    color: Colors.light.text,
+  greetingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
   },
+  greeting: { fontSize: 32, fontWeight: "700", maxWidth: "70%" },
+  streakBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  streakText: { fontSize: 14, fontWeight: "600" },
   searchButton: {
     width: 48,
     height: 48,
@@ -314,8 +346,8 @@ const styles = StyleSheet.create({
   },
   verseOfDayLabel: {
     fontSize: 12,
-    fontWeight: "700" as const,
-    textTransform: "uppercase" as const,
+    fontWeight: "700",
+    textTransform: "uppercase",
     letterSpacing: 1,
     marginBottom: 12,
   },
@@ -323,17 +355,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 28,
     marginBottom: 12,
-    fontWeight: "500" as const,
+    fontWeight: "500",
   },
-  verseReference: {
-    fontSize: 14,
-    fontWeight: "600" as const,
-  },
-  devotionalCard: {
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-  },
+  verseReference: { fontSize: 14, fontWeight: "600" },
+  devotionalCard: { borderRadius: 20, padding: 24, marginBottom: 20 },
   devotionalHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -342,103 +367,68 @@ const styles = StyleSheet.create({
   },
   devotionalLabel: {
     fontSize: 12,
-    fontWeight: "700" as const,
-    textTransform: "uppercase" as const,
+    fontWeight: "700",
+    textTransform: "uppercase",
     letterSpacing: 1,
   },
-  devotionalTitle: {
-    fontSize: 22,
-    fontWeight: "700" as const,
-    marginBottom: 12,
-  },
-  devotionalContent: {
-    fontSize: 15,
-    lineHeight: 24,
-    marginBottom: 16,
-  },
-  readMoreButton: {
-    alignSelf: "flex-start",
-  },
-  readMoreText: {
-    fontSize: 15,
-    fontWeight: "700" as const,
-  },
-  continueReadingCard: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700" as const,
-    marginBottom: 16,
-  },
+  devotionalImage: { height: 100, borderRadius: 12, marginBottom: 12 }, // Add image source here
+  devotionalTitle: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
+  devotionalContent: { fontSize: 15, lineHeight: 24, marginBottom: 16 },
+  readMoreButton: { alignSelf: "flex-start" },
+  readMoreText: { fontSize: 15, fontWeight: "700" },
+  continueReadingCard: { marginBottom: 24 },
+  sectionTitle: { fontSize: 20, fontWeight: "700", marginBottom: 16 },
   continueButton: {
     borderRadius: 16,
     padding: 20,
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
     elevation: 3,
   },
-  continueTextContainer: {
-    flex: 1,
+  continueTextContainer: { flex: 1 },
+  continueBookText: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
+  continueChapterText: { fontSize: 14 },
+  progressBar: {
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+    width: 80,
+    marginLeft: "auto",
   },
-  continueBookText: {
-    fontSize: 18,
-    fontWeight: "700" as const,
-    marginBottom: 4,
-  },
-  continueChapterText: {
-    fontSize: 14,
-  },
-  quickAccessCard: {
-    marginBottom: 24,
-  },
+  progressFill: { height: "100%" },
+  quickAccessCard: { marginBottom: 24 },
+  quickAccessList: { gap: 12 },
   quickAccessButton: {
     borderRadius: 16,
     padding: 20,
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    gap: 8,
     elevation: 4,
+    width: 140, // For horizontal scroll
   },
   quickAccessButtonText: {
-    fontSize: 16,
-    fontWeight: "700" as const,
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "center",
   },
-  quickLinksContainer: {
-    marginBottom: 24,
-  },
-  quickLinksGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 12,
-  },
+  quickLinksContainer: { marginBottom: 24 },
+  quickLinksGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   quickLinkCard: {
     borderRadius: 16,
     padding: 20,
     flex: 1,
     minWidth: "47%",
     alignItems: "center",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    // Add press effect in TouchableOpacity if needed
   },
   quickLinkText: {
     fontSize: 14,
-    fontWeight: "600" as const,
+    fontWeight: "600",
     marginTop: 12,
     marginBottom: 4,
   },
-  quickLinkCount: {
-    fontSize: 20,
-    fontWeight: "700" as const,
-  },
+  quickLinkCount: { fontSize: 20, fontWeight: "700" },
 });

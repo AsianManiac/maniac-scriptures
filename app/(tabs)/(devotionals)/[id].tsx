@@ -2,10 +2,13 @@ import { VerseReferenceDialog } from "@/components/verse-reference-dialog";
 import { DEVOTIONALS } from "@/data/bible-data";
 import { useTheme } from "@/hooks/use-theme";
 import { useBibleStore } from "@/stores/bible-store";
+import { File, Paths } from "expo-file-system";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { BookOpen, Clock, Heart, Share2 } from "lucide-react-native";
+import * as Sharing from "expo-sharing";
+import { BookOpen, Clock, Share2 } from "lucide-react-native";
 import React, { useState } from "react";
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -120,6 +123,24 @@ export default function DevotionalDetailsScreen() {
     return <Text>{parts}</Text>;
   };
 
+  const handleShareDevotional = async () => {
+    try {
+      const shareText = `${devotional.title}\n\n${devotional.verseReference.book} ${devotional.verseReference.chapter}:${devotional.verseReference.verse}\n${devotional.verseText}\n\n${devotional.content}`;
+
+      const tempFile = new File(Paths.cache, "devotional.txt");
+      tempFile.create();
+      await Sharing.shareAsync(tempFile.uri, {
+        dialogTitle: `Share ${devotional.title}`,
+        mimeType: "text/plain",
+        UTI: "public.plain-text",
+      });
+    } catch (error) {
+      console.error("Error sharing devotional:", error);
+      if (error instanceof Error && !error.message.includes("cancelled")) {
+        Alert.alert("Error", "Failed to share devotional");
+      }
+    }
+  };
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -211,17 +232,18 @@ export default function DevotionalDetailsScreen() {
                 styles.actionButtonSecondary,
                 { borderColor: colors.border },
               ]}
+              onPress={handleShareDevotional}
             >
               <Share2 size={20} color={colors.primary} />
             </TouchableOpacity>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={[
                 styles.actionButtonSecondary,
                 { borderColor: colors.border },
               ]}
             >
               <Heart size={20} color={colors.primary} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           {recommendations.length > 0 && (

@@ -1,3 +1,7 @@
+import {
+  ALL_BIBLE_VERSIONS,
+  getGoogleDriveDownloadUrl,
+} from "@/constants/bible-versions-config";
 import { bibleService } from "@/services/bible-service";
 import {
   Collection,
@@ -9,12 +13,18 @@ import {
   VerseReference,
 } from "@/types/bible";
 import { clearBibleCache } from "@/utils/bible-api";
-import { Directory, Paths } from "expo-file-system";
+import { Directory, File, Paths } from "expo-file-system";
+import { createDownloadResumable } from "expo-file-system/legacy";
 import * as ExpoSecureStore from "expo-secure-store";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+
+interface DownloadState {
+  progress: number; // 0 to 1
+  totalBytes: number;
+}
 
 interface BibleState {
   highlights: Highlight[];
@@ -50,6 +60,15 @@ interface BibleState {
   setCurrentChapter: (chapter: number) => void;
   setTargetVerse: (verse: number | null) => void;
   navigateToVerse: (book: string, chapter: number, verse: number) => void;
+
+  downloadingVersions: Record<string, boolean>; // track loading state
+  downloadedVersions: string[]; // list of IDs available on disk
+  downloadVersion: (versionId: string) => Promise<void>;
+  deleteVersion: (versionId: string) => Promise<void>;
+  checkDownloadedVersions: () => Promise<void>;
+
+  // New Download State
+  downloadProgress: Record<string, DownloadState>;
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
@@ -58,6 +77,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   lineSpacing: 1.5,
   notifications: true,
   defaultBibleVersion: "kjv", // Default to KJV
+  themeVariant: "",
 };
 
 const secureStorage = {
@@ -108,6 +128,161 @@ export const useBibleStore = create<BibleState>()(
       currentBook: "John",
       currentChapter: 3,
       targetVerse: null,
+
+      downloadingVersions: {},
+      downloadProgress: {},
+      downloadedVersions: [], // We'll populate this on mount
+
+      // Check which files exist on disk
+      checkDownloadedVersions: async () => {
+        const versionsDir = new Directory(Paths.document, "bible_versions");
+        if (!versionsDir.exists) versionsDir.create();
+
+        const files = versionsDir.list(); // Returns (File | Directory)[]
+
+        // Filter only Files and get their names (e.g. "niv.json")
+        const existingIds = files
+          .filter((item) => item instanceof File && item.name.endsWith(".json"))
+          .map((file) => file.name.replace(".json", ""));
+
+        // Also add static versions to this list so UI knows they are "downloaded"
+        const staticIds = ALL_BIBLE_VERSIONS.filter((v) => v.isStatic).map(
+          (v) => v.id
+        );
+
+        const allAvailable = [...new Set([...staticIds, ...existingIds])];
+
+        set({ downloadedVersions: allAvailable });
+      },
+
+      downloadVersion: async (versionId: string) => {
+        const version = ALL_BIBLE_VERSIONS.find((v) => v.id === versionId);
+        if (!version || !version.googleDriveUrl) return;
+
+        console.log(`Starting download for ${version.name}...`);
+
+        // Set loading state
+        set((state) => ({
+          downloadingVersions: {
+            ...state.downloadingVersions,
+            [versionId]: true,
+          },
+          downloadProgress: {
+            ...state.downloadProgress,
+            [versionId]: { progress: 0, totalBytes: 0 },
+          },
+        }));
+
+        try {
+          // Prepare directory
+          const versionsDir = new Directory(Paths.document, "bible_versions");
+          if (!versionsDir.exists) versionsDir.create();
+
+          // Prepare File destination
+          const destinationFile = new File(versionsDir, `${versionId}.json`);
+
+          // Convert View URL to Download URL
+          const downloadUrl = getGoogleDriveDownloadUrl(version.googleDriveUrl);
+
+          // Use createDownloadResumable for progress updates
+          const downloadResumable = createDownloadResumable(
+            downloadUrl,
+            destinationFile.uri,
+            {
+              headers: {
+                "User-Agent":
+                  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              },
+            },
+            (downloadProgress) => {
+              const progress =
+                downloadProgress.totalBytesWritten /
+                downloadProgress.totalBytesExpectedToWrite;
+
+              set((state) => ({
+                downloadProgress: {
+                  ...state.downloadProgress,
+                  [versionId]: {
+                    progress: progress,
+                    totalBytes: downloadProgress.totalBytesExpectedToWrite,
+                  },
+                },
+              }));
+            }
+          );
+          const result = await downloadResumable.downloadAsync();
+
+          if (result && result.uri) {
+            // Validation
+            const fileContent = destinationFile.textSync();
+            if (fileContent.trim().startsWith("<")) {
+              destinationFile.delete();
+              throw new Error("Google Drive permission error.");
+            }
+
+            try {
+              JSON.parse(fileContent);
+
+              set((state) => ({
+                downloadedVersions: [...state.downloadedVersions, versionId],
+                downloadingVersions: {
+                  ...state.downloadingVersions,
+                  [versionId]: false,
+                },
+                downloadProgress: {
+                  ...state.downloadProgress,
+                  [versionId]: {
+                    progress: 1,
+                    totalBytes:
+                      state.downloadProgress[versionId]?.totalBytes || 0,
+                  },
+                },
+              }));
+
+              await bibleService.preloadVersion(versionId);
+            } catch (jsonError) {
+              destinationFile.delete();
+              throw new Error("Downloaded file is not valid JSON.");
+            }
+          }
+        } catch (error) {
+          console.error(`Download failed for ${versionId}`, error);
+          set((state) => ({
+            downloadingVersions: {
+              ...state.downloadingVersions,
+              [versionId]: false,
+            },
+            downloadProgress: {
+              ...state.downloadProgress,
+              [versionId]: { progress: 0, totalBytes: 0 },
+            }, // Reset on fail
+          }));
+          throw error;
+        }
+      },
+
+      deleteVersion: async (versionId: string) => {
+        try {
+          await bibleService.deleteVersion(versionId);
+
+          set((state) => ({
+            downloadedVersions: state.downloadedVersions.filter(
+              (id) => id !== versionId
+            ),
+            downloadProgress: {
+              ...state.downloadProgress,
+              [versionId]: { progress: 0, totalBytes: 0 },
+            },
+          }));
+
+          // If deleted version was active, switch to default
+          if (get().settings.defaultBibleVersion === versionId) {
+            get().setDefaultVersion("kjv");
+          }
+        } catch (error) {
+          console.error("Delete failed", error);
+        }
+      },
 
       setDefaultVersion: (versionId: string) => {
         console.log("Setting default Bible version:", versionId);
@@ -289,9 +464,11 @@ export const useBibleStore = create<BibleState>()(
           collections: [],
           settings: DEFAULT_SETTINGS,
           history: [],
-          currentBook: "John",
+          currentBook: "Genesis",
           currentChapter: 3,
           targetVerse: null,
+          downloadingVersions: {},
+          downloadProgress: {},
         });
         // Clear storage
         SecureStore.deleteItemAsync("bible-storage");
@@ -301,6 +478,10 @@ export const useBibleStore = create<BibleState>()(
     {
       name: "bible-storage",
       storage: createJSONStorage(() => secureStorage),
+      onRehydrateStorage: () => (state) => {
+        // When store rehydrates, check files
+        state?.checkDownloadedVersions();
+      },
     }
   )
 );

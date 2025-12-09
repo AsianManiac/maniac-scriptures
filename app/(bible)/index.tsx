@@ -8,6 +8,7 @@ import { Verse, VerseReference } from "@/types/bible";
 import { fetchChapter, getBook } from "@/utils/bible-api";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import {
   BookOpen,
   ChevronLeft,
@@ -275,6 +276,7 @@ export default function BibleScreen() {
         { paddingTop: insets.top, backgroundColor: colors.background },
       ]}
     >
+      <StatusBar style="auto" />
       <View
         style={[
           styles.header,
@@ -460,6 +462,7 @@ export default function BibleScreen() {
               styles.chapterIndicatorText,
               { color: colors.cardBackground },
             ]}
+            onPress={() => setShowChapterSelector(true)}
           >
             {currentChapter}
           </Text>
@@ -544,12 +547,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   bookSelectorText: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "700" as const,
   },
   versionButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
+    marginRight: 35,
     borderRadius: 12,
   },
   versionButtonText: {
@@ -649,8 +653,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderTopWidth: 1,
+    paddingVertical: 14,
+    marginBottom: 10,
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -665,7 +669,7 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   navButtonText: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: "600" as const,
   },
   chapterIndicator: {

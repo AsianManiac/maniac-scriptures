@@ -1,20 +1,22 @@
 // services/bible-service.ts - Enhanced with version switching
+import { ALL_BIBLE_VERSIONS } from "@/constants/bible-versions-config";
 import { BibleVersion, Verse, VerseReference } from "@/types/bible";
 import { normalizeBibleText } from "@/utils/text-processor";
+import { Directory, File, Paths } from "expo-file-system";
 
 // Import all Bible versions statically
 import akjv from "@/assets/bible/akjv.json";
-import amp from "@/assets/bible/amp.json";
-import asv from "@/assets/bible/asv.json";
-import esv from "@/assets/bible/esv.json";
-import gnv from "@/assets/bible/gnv.json";
 import kjv from "@/assets/bible/kjv.json";
-import mev from "@/assets/bible/mev.json";
-import niv from "@/assets/bible/niv.json";
-import nkjv from "@/assets/bible/nkjv.json";
-import nlt from "@/assets/bible/nlt.json";
-import nlv from "@/assets/bible/nlv.json";
 import web from "@/assets/bible/web.json";
+// import amp from "@/assets/bible/amp.json";
+// import asv from "@/assets/bible/asv.json";
+// import esv from "@/assets/bible/esv.json";
+// import gnv from "@/assets/bible/gnv.json";
+// import mev from "@/assets/bible/mev.json";
+// import niv from "@/assets/bible/niv.json";
+// import nkjv from "@/assets/bible/nkjv.json";
+// import nlt from "@/assets/bible/nlt.json";
+// import nlv from "@/assets/bible/nlv.json";
 
 // Available Bible versions
 export const BIBLE_VERSIONS: BibleVersion[] = [
@@ -99,34 +101,28 @@ export type BibleData = {
 // Static import map for all Bible versions
 const BIBLE_DATA_MAP: Record<string, BibleData> = {
   akjv,
-  amp,
-  asv,
-  esv,
-  gnv,
   kjv,
-  mev,
-  niv,
-  nkjv,
-  nlt,
-  nlv,
   web,
 };
 
 class BibleService {
   private cache: Map<string, BibleData> = new Map();
-  private loadingPromises: Map<string, Promise<BibleData>> = new Map();
   private currentVersion: string = "kjv";
 
-  /**
-   * Get a Bible version by ID
-   */
-  getVersion(versionId: string): BibleVersion | undefined {
-    return BIBLE_VERSIONS.find((v) => v.id === versionId);
+  // Define storage directory
+  private versionsDir = new Directory(Paths.document, "bible_versions");
+
+  constructor() {
+    // Ensure directory exists on init
+    if (!this.versionsDir.exists) {
+      this.versionsDir.create();
+    }
   }
 
-  /**
-   * Get the default Bible version (KJV)
-   */
+  getVersion(versionId: string): BibleVersion | undefined {
+    return ALL_BIBLE_VERSIONS.find((v) => v.id === versionId);
+  }
+
   getDefaultVersion(): BibleVersion {
     return this.getVersion("kjv")!;
   }
@@ -151,29 +147,63 @@ class BibleService {
    * Get all available Bible versions
    */
   getAllVersions(): BibleVersion[] {
-    return BIBLE_VERSIONS;
+    return ALL_BIBLE_VERSIONS;
   }
 
   /**
-   * Load a Bible version from static import map
+   * Check if a version is available locally (either static or downloaded)
+   */
+  isVersionAvailable(versionId: string): boolean {
+    // 1. Check if it's static
+    if (BIBLE_DATA_MAP[versionId]) return true;
+
+    // 2. Check if file exists in storage
+    const file = new File(this.versionsDir, `${versionId}.json`);
+    return file.exists;
+  }
+
+  /**
+   * Load a Bible version: Checks Cache -> File System -> Static Map
    */
   async loadVersion(versionId: string): Promise<BibleData> {
-    // Check cache first
+    // 1. Check RAM Cache
     if (this.cache.has(versionId)) {
       return this.cache.get(versionId)!;
     }
 
-    // Get from static map
-    const bibleData = BIBLE_DATA_MAP[versionId];
+    let rawData: any = null;
 
-    if (!bibleData) {
-      throw new Error(`Bible version '${versionId}' not found`);
+    // 2. Check File System (Downloaded versions)
+    const file = new File(this.versionsDir, `${versionId}.json`);
+
+    if (file.exists) {
+      console.log(`Loading ${versionId} from File System...`);
+      try {
+        const jsonString = file.textSync(); // or await file.text()
+        rawData = JSON.parse(jsonString);
+      } catch (e) {
+        console.error(`Failed to parse ${versionId} from disk`, e);
+        // If file is corrupt, maybe delete it?
+        // file.delete();
+      }
     }
 
-    // Process and normalize all text in the Bible data
-    const processedData = this.processBibleData(bibleData);
+    // 3. Check Static Map (Bundled versions)
+    if (!rawData && BIBLE_DATA_MAP[versionId]) {
+      console.log(`Loading ${versionId} from Static Assets...`);
+      rawData = BIBLE_DATA_MAP[versionId];
+    }
 
-    // Cache the processed data
+    if (!rawData) {
+      throw new Error(
+        `Bible version '${versionId}' not found locally. Please download it first.`
+      );
+    }
+
+    // Process and normalize
+    const processedData = this.processBibleData(rawData);
+
+    // Cache
     this.cache.set(versionId, processedData);
 
     return processedData;
@@ -202,6 +232,21 @@ class BibleService {
     }
 
     return processed;
+  }
+
+  // New method to delete a downloaded version
+  async deleteVersion(versionId: string): Promise<void> {
+    // Prevent deleting static versions
+    if (BIBLE_DATA_MAP[versionId]) {
+      throw new Error("Cannot delete built-in Bible versions.");
+    }
+
+    const file = new File(this.versionsDir, `${versionId}.json`);
+    if (file.exists) {
+      file.delete();
+      this.cache.delete(versionId); // Remove from RAM cache too
+      console.log(`Deleted version ${versionId}`);
+    }
   }
 
   /**
