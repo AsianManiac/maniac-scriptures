@@ -19,15 +19,6 @@ export const getGoogleDriveDownloadUrl = (viewUrl: string): string => {
 export const ALL_BIBLE_VERSIONS: RemoteBibleVersion[] = [
   // --- Static Local Versions (Keep your existing ones here) ---
   {
-    id: "akjv",
-    name: "American King James Version",
-    abbreviation: "AKJV",
-    language: "English",
-    googleDriveUrl:
-      "https://drive.google.com/file/d/1_Lf6kUwm8rdTWxkEeY9lO3CO_HuejFdI/view?usp=drive_link",
-    isStatic: true,
-  },
-  {
     id: "amp",
     name: "Amplified Bible",
     abbreviation: "AMP",
@@ -73,15 +64,6 @@ export const ALL_BIBLE_VERSIONS: RemoteBibleVersion[] = [
     isStatic: true,
   },
   {
-    id: "nlt",
-    name: "New Living Translation",
-    abbreviation: "NLT",
-    language: "English",
-    googleDriveUrl:
-      "https://drive.google.com/file/d/1UgxPk8sFvVr9DIGsHtqob0WzhD-hrUgT/view?usp=drive_link",
-    isStatic: true,
-  },
-  {
     id: "nlv",
     name: "New Life Version",
     abbreviation: "NLV",
@@ -90,18 +72,17 @@ export const ALL_BIBLE_VERSIONS: RemoteBibleVersion[] = [
       "https://drive.google.com/file/d/1hSp4BbfpdcKv0klg27A7eTFganpM5t_B/view?usp=drive_link",
     isStatic: true,
   },
-  {
-    id: "web",
-    name: "World English Bible",
-    abbreviation: "WEB",
-    language: "English",
-    googleDriveUrl:
-      "https://drive.google.com/file/d/1D_FzNsYa30ZFOASwlTccpNExNq0c7DO8/view?usp=drive_link",
-    isStatic: true,
-  },
-  // ... Add the rest of your static imports here with isStatic: true
 
   // --- Downloadable Versions (New ones from your list) ---
+  {
+    id: "akjv",
+    name: "American King James Version",
+    abbreviation: "AKJV",
+    language: "English",
+    googleDriveUrl:
+      "https://drive.google.com/file/d/1_Lf6kUwm8rdTWxkEeY9lO3CO_HuejFdI/view?usp=drive_link",
+    isStatic: false,
+  },
   {
     id: "asv",
     name: "American Standard Version",
@@ -238,6 +219,15 @@ export const ALL_BIBLE_VERSIONS: RemoteBibleVersion[] = [
     isStatic: false,
   },
   {
+    id: "nlt",
+    name: "New Living Translation",
+    abbreviation: "NLT",
+    language: "English",
+    googleDriveUrl:
+      "https://drive.google.com/file/d/1UgxPk8sFvVr9DIGsHtqob0WzhD-hrUgT/view?usp=drive_link",
+    isStatic: false,
+  },
+  {
     id: "nog",
     name: "Names of God Bible",
     abbreviation: "NOG",
@@ -262,6 +252,15 @@ export const ALL_BIBLE_VERSIONS: RemoteBibleVersion[] = [
     language: "English",
     googleDriveUrl:
       "https://drive.google.com/file/d/1C0gMgLEYvQYQzo-xw8al9XikeM1nuD4M/view?usp=drive_link",
+    isStatic: false,
+  },
+  {
+    id: "web",
+    name: "World English Bible",
+    abbreviation: "WEB",
+    language: "English",
+    googleDriveUrl:
+      "https://drive.google.com/file/d/1D_FzNsYa30ZFOASwlTccpNExNq0c7DO8/view?usp=drive_link",
     isStatic: false,
   },
   {
