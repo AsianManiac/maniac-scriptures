@@ -6,8 +6,9 @@ import { GAME_THEME } from "@/constants/game-theme";
 import { CAMPAIGN_DATA } from "@/data/campaign-data";
 import { useCampaignStore } from "@/stores/campaign-store";
 import { Ionicons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system/legacy";
+import * as MediaLibrary from "expo-media-library";
 import { useLocalSearchParams, useRouter } from "expo-router";
-// import * as MediaLibrary from 'expo-media-library';
 import React, { useMemo, useState } from "react";
 import {
   Alert,
@@ -71,16 +72,22 @@ export default function CampaignMapScreen() {
 
   const handleDownload = async () => {
     try {
-      // const { status } = await MediaLibrary.requestPermissionsAsync();
-      // if (status !== 'granted') {
-      //     Alert.alert("Permission needed", "We need permission to save the relic to your gallery.");
-      //     return;
-      // }
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission needed",
+          "We need permission to save the relic to your gallery."
+        );
+        return;
+      }
 
-      // const fileUri = FileSystem.documentDirectory + `${stage.id}_relic.jpg`;
-      // const downloadRes = await FileSystem.downloadAsync(stage.imageUrl, fileUri);
+      const fileUri = FileSystem.documentDirectory + `${stage.id}_relic.jpg`;
+      const downloadRes = await FileSystem.downloadAsync(
+        stage.imageUrl,
+        fileUri
+      );
 
-      // await MediaLibrary.saveToLibraryAsync(downloadRes.uri);
+      await MediaLibrary.saveToLibraryAsync(downloadRes.uri);
       Alert.alert("Saved!", "Relic saved to your gallery.");
     } catch (e) {
       Alert.alert("Error", "Could not save image.");
