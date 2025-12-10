@@ -26,20 +26,6 @@ export default function ProfileLayout() {
         }}
       />
       <Stack.Screen
-        name="map-explorer"
-        options={{
-          headerShown: false,
-          ...Transition.presets.ZoomIn(),
-        }}
-      />
-      <Stack.Screen
-        name="verse-ninja"
-        options={{
-          headerShown: false,
-          ...Transition.presets.ZoomIn(),
-        }}
-      />
-      <Stack.Screen
         name="falling-word"
         options={{ headerShown: false, ...Transition.presets.ZoomIn() }}
       />
